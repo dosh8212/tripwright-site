@@ -12,7 +12,7 @@
 <nav><a href="../">TripWright</a><a href="../privacy/">Privacy Policy</a><a href="../terms/">Terms of Service</a><a href="../#support">Support</a></nav>
 <article>
 <h1>Privacy Policy</h1>
-<p class="meta">TripWright · Last updated: November 15, 2026</p>
+<p class="meta">TripWright · Last updated: November 16, 2026</p>
 
 <h2>Overview</h2>
 <p>TripWright keeps your trips and photos on your phone. They are not uploaded to our servers unless you create a share link, and photos are never uploaded at all. There are no accounts. This policy describes what is stored, which other services receive data, and how to delete it.</p>
@@ -31,7 +31,7 @@
 <p>TripWright has no AI features and does not send anything you enter to an AI provider. When you import a document, spreadsheet or booking email, the app reads it on your device with fixed rules; the file and its text are not uploaded.</p>
 
 <h3>e) Location, weather, and maps</h3>
-<p>We do not request your device's GPS. When you search for a destination, your search text is sent to our backend, which forwards it to OpenStreetMap Nominatim. Our backend does not log your search text. For rate limiting it counts requests per IP address and device ID, stored only as one-way hashes and deleted after a day. To show weather, the app sends the destination name directly from your device to Open-Meteo's geocoding service, then sends the resulting coordinates and your trip dates to Open-Meteo's forecast service. The map panel loads map tiles from OpenStreetMap tile servers, which can see your device's IP address and which map areas you view.</p>
+<p>We do not request your device's GPS. When you type a destination or an address, your search text is sent directly from your device to Photon (photon.komoot.io), an OpenStreetMap search service run by komoot, which can see your device's IP address and what you searched for. The same service is used to place your trip's destinations on the map. To show weather, the app sends the destination name directly from your device to Open-Meteo's geocoding service, then sends the resulting coordinates and your trip dates to Open-Meteo's forecast service. The map panel loads map data and fonts from OpenFreeMap (tiles.openfreemap.org), which can see your device's IP address and which map areas you view. Your choice of map language is stored only on your device.</p>
 
 <h3>f) Crash and error data</h3>
 <p>The app does not send crash reports to third parties in the current release. Basic diagnostic information may be written to your device's console.</p>
@@ -49,7 +49,8 @@
 <ul>
 <li><strong>Supabase (via Lovable Cloud)</strong>: hosts the database and backend functions for share links, collaboration, destination search, and exchange rates. It does not store your photos.</li>
 <li><strong>Open-Meteo</strong>: weather forecasts; receives the destination name and coordinates directly from your device. <a href="https://open-meteo.com/en/terms">Terms</a>.</li>
-<li><strong>OpenStreetMap (Nominatim and tile servers)</strong>: destination search (through our backend) and map tiles (directly from your device).</li>
+<li><strong>Photon (komoot)</strong>: destination and address search, and placing destinations on the map (directly from your device).</li>
+<li><strong>OpenFreeMap</strong>: map data, map fonts and map icons (directly from your device).</li>
 <li><strong>Exchange rates</strong>: rates come from open.er-api.com, fetched by our backend on a schedule. The currency calculator reads them from our database, so nothing about you is sent to that source.</li>
 <li><strong>Google Fonts</strong>: the app's fonts may be loaded from Google.</li>
 <li><strong>Unsplash</strong>: sample trips display images loaded from Unsplash.</li>
