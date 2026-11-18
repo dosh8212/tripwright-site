@@ -1,0 +1,5 @@
+User-agent: *
+Disallow: /shared
+Disallow: /trip/
+Disallow: /collab/
+Allow: /

@@ -1,0 +1,31 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appIDs": [
+          "H69ZF54MVC.com.tripwright.app"
+        ],
+        "components": [
+          {
+            "/": "/trip/*",
+            "comment": "Open shared trip by slug"
+          },
+          {
+            "/": "/collab/*",
+            "comment": "Open collaborative trip"
+          },
+          {
+            "/": "/shared",
+            "comment": "Open encoded shared trip"
+          }
+        ]
+      }
+    ]
+  },
+  "webcredentials": {
+    "apps": [
+      "H69ZF54MVC.com.tripwright.app"
+    ]
+  }
+}

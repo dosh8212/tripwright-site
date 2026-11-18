@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TripWright</title>
+<script>
+  // GitHub Pages shows this page for any address that isn't a file. Trip links
+  // (/tripwright-site/app/trip/..., /collab/..., /shared?t=...) belong to the web
+  // app, so hand them to its index.html, which restores the address
+  // (app/spa-redirect.js) and opens the trip.
+  (function () {
+    var l = window.location, app = '/tripwright-site/app/';
+    if (l.pathname.indexOf(app) === 0 && l.pathname.length > app.length) {
+      l.replace(app + '?p=' + l.pathname.slice(1).replace(/&/g, '~and~') +
+        (l.search ? '&q=' + l.search.slice(1).replace(/&/g, '~and~') : '') + l.hash);
+    }
+  })();
+</script>
+<link rel="stylesheet" href="/tripwright-site/style.css">
+</head>
+<body>
+<main>
+<h1>Page not found</h1>
+<p>This page doesn't exist. <a href="/tripwright-site/">Go to the TripWright home page</a>.</p>
+</main>
+</body>
+</html>
