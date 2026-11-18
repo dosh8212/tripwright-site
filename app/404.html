@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>TripWright</title>
+    <script>
+      // GitHub Pages answers unknown paths (like /trip/<slug>) with this page.
+      // Send them to the app's index.html, which restores the path (spa-redirect.js).
+      // The first path segment is kept when it's a project site (user.github.io/<repo>/).
+      var l = window.location;
+      var keep = /\.github\.io$/.test(l.hostname) ? 1 : 0;
+      var segs = l.pathname.split('/');
+      var base = segs.slice(0, keep + 1).join('/') + '/';
+      l.replace(
+        base + '?p=' + l.pathname.slice(1).replace(/&/g, '~and~') +
+        (l.search ? '&q=' + l.search.slice(1).replace(/&/g, '~and~') : '') +
+        l.hash
+      );
+    </script>
+  </head>
+  <body></body>
+</html>
