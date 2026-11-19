@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- SPA redirect handler: receives the redirect from 404.html (external file so the CSP needs no inline scripts in production) -->
+    <script src="/tripwright-site/app/spa-redirect.js"></script>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://*.supabase.co https://images.unsplash.com; connect-src 'self' https://tiles.openfreemap.org https://photon.komoot.io https://*.supabase.co wss://*.supabase.co https://api.open-meteo.com https://geocoding-api.open-meteo.com; worker-src 'self' blob:; manifest-src 'self'; frame-ancestors 'self' https://*.lovable.app https://*.lovable.dev; base-uri 'self'; form-action 'self'; object-src 'none';" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
+
+    <!-- iOS PWA -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="TripWright" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="theme-color" content="#0c2340" />
+
+    <!-- The app has no AI; keep descriptions free of AI claims. -->
+    <title>Help plan this trip · TripWright</title>
+    <meta name="description" content="You're invited to view and edit this trip itinerary. No app or account needed." />
+    <meta name="author" content="TripWright" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Help plan this trip · TripWright" />
+    <meta property="og:description" content="You're invited to view and edit this trip itinerary. No app or account needed." />
+    <meta property="og:url" content="https://dosh8212.github.io/tripwright-site/app/collab/" />
+    <meta property="og:image" content="https://dosh8212.github.io/tripwright-site/app/og-image.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:site_name" content="TripWright" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Help plan this trip · TripWright" />
+    <meta name="twitter:description" content="You're invited to view and edit this trip itinerary. No app or account needed." />
+    <meta name="twitter:image" content="https://dosh8212.github.io/tripwright-site/app/og-image.jpg" />
+
+    <!-- Canonical -->
+
+    <!-- PWA Icons -->
+    <link rel="icon" type="image/png" href="/tripwright-site/app/favicon.png" />
+    <link rel="apple-touch-icon" href="/tripwright-site/app/favicon.png" />
+
+    <!-- Preconnect hints -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="dns-prefetch" href="https://slpwzncmjdvfrhnzqlhs.supabase.co">
+
+    <!-- Non-render-blocking font loading -->
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <script type="module" crossorigin src="/tripwright-site/app/assets/index-ByC86ZoH.js"></script>
+    <link rel="stylesheet" crossorigin href="/tripwright-site/app/assets/index-giCxiMIS.css">
+  <link rel="manifest" href="/tripwright-site/app/manifest.webmanifest"></head>
+
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
