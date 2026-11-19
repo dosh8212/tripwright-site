@@ -1,1 +1,0 @@
-import{j as e,bb as o}from"./index-ByC86ZoH.js";function s({trip:t}){return t?e.jsx("div",{className:"min-h-0 flex-1 overflow-y-auto p-3",children:e.jsx(o,{trip:t})}):e.jsx("p",{className:"p-4 text-sm text-muted-foreground",children:"No trip selected."})}export{s as default};
