@@ -67,6 +67,14 @@ a { color: inherit; }
 .where { margin: 0 auto; font-size: .85rem; opacity: .9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: .04em; }
 .where-label { display: inline-block; transition: opacity .3s, transform .3s var(--ease); }
 .where-label.swap { opacity: 0; transform: translateY(6px); }
+.sound-toggle {
+  display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; flex-shrink: 0; border-radius: 999px;
+  font: 600 .85rem/1 var(--body); color: inherit; cursor: pointer;
+  background: rgba(255, 255, 255, .16); border: 1px solid rgba(255, 255, 255, .35);
+}
+.sound-toggle:hover { background: rgba(255, 255, 255, .26); }
+.sound-toggle[aria-pressed="true"] { background: rgba(255, 255, 255, .9); color: var(--ink); }
+@media (max-width: 520px) { .sound-toggle span { display: none; } .sound-toggle { padding: 6px 9px; } }
 .top-contact { text-decoration: none; font-size: .85rem; font-weight: 600; padding: 6px 14px; border-radius: 999px; background: var(--coral); color: #fff; }
 .trip-progress { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(255, 255, 255, .12); }
 .trip-progress span { display: block; height: 100%; transform-origin: left; transform: scaleX(var(--progress, 0)); background: linear-gradient(90deg, var(--amber), var(--coral)); }

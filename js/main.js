@@ -141,6 +141,40 @@ function setupSnap() {
   ['wheel', 'keydown', 'mousedown'].forEach((t) => window.addEventListener(t, () => { gliding = false; }, { passive: true }));
 }
 
+/* Sound: off until the visitor turns it on; the choice is remembered for their next visit. */
+const ICON_ON = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+const ICON_OFF = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16.5 9.5l5 5m0-5l-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+async function setupSound() {
+  let sound = null, on = false;
+  try { on = localStorage.getItem('tw-sound') === 'on'; } catch (e) { /* storage blocked: stay off */ }
+  const btn = document.createElement('button');
+  btn.type = 'button'; btn.className = 'sound-toggle';
+  const show = () => {
+    btn.setAttribute('aria-pressed', String(on));
+    btn.setAttribute('aria-label', on ? 'Turn sound off' : 'Turn on ocean sounds');
+    btn.innerHTML = (on ? ICON_ON : ICON_OFF) + `<span>${on ? 'Sound on' : 'Sound'}</span>`;
+  };
+  show();
+  const contact = document.querySelector('.top-contact');
+  contact.parentNode.insertBefore(btn, contact);
+  const load = async () => { if (!sound) sound = (await import('./sound.js')).createSound(); return sound; };
+  const apply = async () => { const s = await load(); if (s) s.setOn(on); };
+  btn.addEventListener('click', () => {
+    on = !on; show();
+    try { localStorage.setItem('tw-sound', on ? 'on' : 'off'); } catch (e) { /* not remembered */ }
+    apply();
+  });
+  if (on) { // remembered as on: browsers only allow sound after a tap or key press, so start on the first one
+    const start = (e) => {
+      if (e.target.closest && e.target.closest('.sound-toggle')) return;
+      ['pointerdown', 'keydown', 'touchend'].forEach((t) => window.removeEventListener(t, start, true));
+      if (on) apply();
+    };
+    ['pointerdown', 'keydown', 'touchend'].forEach((t) => window.addEventListener(t, start, true));
+  }
+  return { update: (film) => { if (sound) sound.update(film); } };
+}
+
 /** Where the subject should sit: right of the text on wide screens; on phones above the card,
     except at departure, where the bird flies below the headline. Eased toward every frame. */
 const frame = { x: 0, y: 0 };
@@ -167,6 +201,7 @@ async function startFilm() {
   }
   window.addEventListener('resize', () => { world.resize(); });
   setupSnap();
+  const sound = await setupSound();
   let film = targetFilm(), last = performance.now(), first = true;
   const loop = (now) => {
     const dt = Math.min(0.05, (now - last) / 1000); last = now;
@@ -175,6 +210,7 @@ async function startFilm() {
     if (Math.abs(want - film) < 0.0005) film = want;
     frameFor(world, film, first ? 1 : 1 - Math.exp(-dt * 4));
     world.render(film, dt);
+    sound.update(film);
     updatePanels(film);
     if (first) { first = false; root.classList.add('ready'); }
     requestAnimationFrame(loop);
