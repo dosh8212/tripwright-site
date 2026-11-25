@@ -104,6 +104,43 @@ function updatePanels(film) {
   root.style.setProperty('--progress', (film / beats.length).toFixed(4));
 }
 
+/* Soft snapping: when the visitor stops scrolling partway through a flight, the page glides on to
+   the island ahead (or back to the card they left, if they were scrolling up), so it never rests on
+   open sea with nothing to read. It waits for fingers to lift and momentum to settle, and never
+   fights a visitor who is still scrolling. */
+function scrollForFilm(f) {
+  const i = Math.min(Math.floor(f), beats.length - 1), b = beats[i];
+  return b.offsetTop + Math.max(1, b.offsetHeight - window.innerHeight) * (f - i);
+}
+function setupSnap() {
+  let lastY = window.scrollY, dir = 1, timer = 0, touching = false, gliding = false;
+  const settle = () => {
+    timer = 0;
+    if (touching) return;
+    if (gliding) { gliding = false; return; }
+    const f = targetFilm(), last = beats.length - 1;
+    let i = Math.floor(f + (1 - ARRIVE)); const local = f - i;
+    if (i >= last) return;
+    const end = i === 0 ? 0.4 : PANEL_END;
+    if (local < end) return; // a card is showing
+    const ahead = dir > 0 || (local - end) / (ARRIVE - end) > 0.5;
+    const to = ahead ? scrollForFilm(i + 1 + 0.02) : scrollForFilm(i + end - 0.08);
+    if (Math.abs(to - window.scrollY) < 2) return;
+    gliding = true;
+    window.scrollTo({ top: Math.round(to), behavior: 'smooth' });
+  };
+  const arm = (ms) => { clearTimeout(timer); timer = setTimeout(settle, ms); };
+  window.addEventListener('scroll', () => {
+    const y = window.scrollY;
+    if (Math.abs(y - lastY) > 1 && !gliding) dir = y > lastY ? 1 : -1;
+    lastY = y;
+    arm(gliding ? 160 : 260);
+  }, { passive: true });
+  window.addEventListener('touchstart', () => { touching = true; gliding = false; clearTimeout(timer); }, { passive: true });
+  window.addEventListener('touchend', () => { touching = false; arm(320); }, { passive: true });
+  ['wheel', 'keydown', 'mousedown'].forEach((t) => window.addEventListener(t, () => { gliding = false; }, { passive: true }));
+}
+
 /** Where the subject should sit: right of the text on wide screens; on phones above the card,
     except at departure, where the bird flies below the headline. Eased toward every frame. */
 const frame = { x: 0, y: 0 };
@@ -129,6 +166,7 @@ async function startFilm() {
     return;
   }
   window.addEventListener('resize', () => { world.resize(); });
+  setupSnap();
   let film = targetFilm(), last = performance.now(), first = true;
   const loop = (now) => {
     const dt = Math.min(0.05, (now - last) / 1000); last = now;
