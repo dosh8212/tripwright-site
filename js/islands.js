@@ -172,7 +172,7 @@ function harborIsle() {
 function lighthouseRock() {
   const g = new THREE.Group();
   const h = heightFn({ seed: 67, blobs: [{ x: 0, z: 0, r: 17 }], peaks: [{ x: 0, z: 0, r: 15, h: 12 }], rough: 2.2 });
-  nature(g, h, 36, 67, { rocky: true, palms: 0, bushes: 20, rocks: 18, tint: 0x4a6a3a });
+  nature(g, h, 36, 67, { rocky: true, palms: 0, bushes: 20, rocks: 18, tint: 0xa9b894 });
   const tower = new THREE.Group(); tower.position.y = h(0, 0) - 0.6;
   for (let i = 0; i < 5; i++) {
     const r0 = 2.6 - i * 0.25, r1 = 2.6 - (i + 1) * 0.25;

@@ -56,15 +56,34 @@ export function heightFn(opts) {
   };
 }
 
-/** Adds caustics to the seabed and a darker wet band near the waterline. */
+/** Adds fine ground detail (grain, mottling, rock strata, bumpy normals), caustics on the seabed,
+    and a darker wet band at the waterline. */
 function addSeabedShader(material) {
   material.onBeforeCompile = (shader) => {
     shader.uniforms.uTime = seabed.time; shader.uniforms.uSun = seabed.sun;
     shader.vertexShader = shader.vertexShader
-      .replace('#include <common>', '#include <common>\nvarying vec3 vWPos;')
-      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvWPos = (modelMatrix * vec4(transformed, 1.)).xyz;');
+      .replace('#include <common>', '#include <common>\nvarying vec3 vWPos, vWNrm;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvWPos = (modelMatrix * vec4(transformed, 1.)).xyz; vWNrm = normalize(mat3(modelMatrix) * objectNormal);');
     shader.fragmentShader = shader.fragmentShader
-      .replace('#include <common>', '#include <common>\nvarying vec3 vWPos; uniform float uTime, uSun;\n' + NOISE)
+      .replace('#include <common>', '#include <common>\nvarying vec3 vWPos, vWNrm; uniform float uTime, uSun;\n' + NOISE)
+      .replace('#include <color_fragment>', `#include <color_fragment>
+        float slopeW = 1. - vWNrm.y;
+        float land = smoothstep(.3, 1.2, vWPos.y);
+        float rockW = smoothstep(.32, .55, slopeW) * land;
+        float mott = fbm3(vWPos.xz * .9), grain = vnoise(vWPos.xz * 9.), fine = vnoise(vWPos.xz * 30.);
+        diffuseColor.rgb *= mix(.9 + grain * .14 + fine * .06, .72 + mott * .5, land * (1. - rockW));
+        // rock: horizontal strata and cracks
+        float strata = .78 + .3 * vnoise(vec2(vWPos.y * 2.6 + mott * 2., (vWPos.x + vWPos.z) * .08));
+        diffuseColor.rgb *= mix(1., strata * (.85 + fine * .3), rockW);
+        // wet sand just above the waterline, and darker sand where waves wash
+        diffuseColor.rgb *= 1. - .25 * smoothstep(.7, .05, vWPos.y) * smoothstep(-.6, .05, vWPos.y);`)
+      .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
+        {
+          float e = .15, b0 = fbm3(vWPos.xz * 1.6);
+          vec2 gr = vec2(fbm3(vWPos.xz * 1.6 + vec2(e, 0.)) - b0, fbm3(vWPos.xz * 1.6 + vec2(0., e)) - b0) / e;
+          float amt = mix(.12, .5, smoothstep(.3, 1.2, vWPos.y)) * (1. + smoothstep(.32, .55, 1. - vWNrm.y));
+          normal = normalize(normal - (viewMatrix * vec4(gr.x, 0., gr.y, 0.)).xyz * amt * .35);
+        }`)
       .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
         float under = smoothstep(0.2, -1.2, vWPos.y) * smoothstep(-14., -3., vWPos.y);
         totalEmissiveRadiance += vec3(.9, 1., .85) * caustic(vWPos.xz * .35, uTime) * under * .55 * uSun * diffuseColor.rgb;`);
@@ -73,7 +92,7 @@ function addSeabedShader(material) {
 
 /** Builds the terrain mesh for a height function covering a square of half-size `extent`. */
 export function terrain(h, extent, opts = {}) {
-  const seg = opts.seg || 120, seed = opts.seed || 1;
+  const seg = opts.seg || 160, seed = opts.seed || 1;
   const geo = new THREE.PlaneGeometry(extent * 2, extent * 2, seg, seg);
   geo.rotateX(-Math.PI / 2);
   const p = geo.attributes.position;
@@ -216,24 +235,65 @@ export function palmGrove(spots, rand) {
   return group;
 }
 
-/** Dense round shrubs and trees for the jungle canopy, as one instanced mesh. */
+/** Paints a cluster of leaves on a transparent background: dark inner leaves, sunlit ones on top. */
+function leafTexture() {
+  const c = document.createElement('canvas'); c.width = c.height = 256;
+  const x = c.getContext('2d');
+  let s = 7; const r = () => ((s = (s * 16807) % 2147483647) / 2147483647);
+  for (let i = 0; i < 520; i++) {
+    const a = r() * Math.PI * 2, d = Math.sqrt(r()) * 104, px = 128 + Math.cos(a) * d, py = 128 + Math.sin(a) * d;
+    const layer = i / 520, g = 85 + layer * 125 + r() * 30;
+    x.fillStyle = `rgb(${Math.round(g * 0.5 + r() * 22)},${Math.round(g)},${Math.round(g * 0.3)})`;
+    x.save(); x.translate(px, py); x.rotate(r() * Math.PI * 2);
+    const L = 7 + r() * 9, W = L * (0.38 + r() * 0.2);
+    x.beginPath(); x.moveTo(-L, 0); x.quadraticCurveTo(0, -W, L, 0); x.quadraticCurveTo(0, W, -L, 0); x.fill();
+    x.strokeStyle = 'rgba(20,40,10,.35)'; x.lineWidth = 0.8; x.beginPath(); x.moveTo(-L, 0); x.lineTo(L, 0); x.stroke();
+    x.restore();
+  }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t;
+}
+
+/** One tree crown: leafy cards spread over a dome, with normals pointing outward so it lights like foliage. */
+function crownGeometry() {
+  const parts = [], rand = rng(91), m = new THREE.Matrix4(), q = new THREE.Quaternion(), up = new THREE.Vector3(0, 0, 1);
+  for (let i = 0; i < 14; i++) {
+    const u = rand(), v = rand(), th = u * Math.PI * 2, ph = Math.acos(1 - v * 1.6);
+    const dir = new THREE.Vector3(Math.sin(ph) * Math.cos(th), Math.cos(ph), Math.sin(ph) * Math.sin(th));
+    q.setFromUnitVectors(up, dir);
+    q.multiply(new THREE.Quaternion().setFromAxisAngle(up, rand() * 6.28));
+    const sz = 0.9 + rand() * 0.5;
+    m.compose(dir.clone().multiplyScalar(0.5), q, new THREE.Vector3(sz, sz, sz));
+    parts.push([new THREE.PlaneGeometry(1.25, 1.25), m.clone()]);
+  }
+  const g = merge(parts), p = g.attributes.position, n = g.attributes.normal;
+  for (let i = 0; i < p.count; i++) {
+    const v = new THREE.Vector3(p.getX(i), p.getY(i) + 0.25, p.getZ(i)).normalize();
+    n.setXYZ(i, v.x, v.y, v.z);
+  }
+  return g;
+}
+
+let leafMat, leafDepth;
+/** Leafy trees and shrubs for the jungle, as one instanced mesh of tree crowns. */
 export function bushes(spots, rand, tint) {
-  const geo = new THREE.IcosahedronGeometry(1, 1), p = geo.attributes.position;
-  for (let i = 0; i < p.count; i++) { const k = 0.85 + hash(p.getX(i) * 3, p.getZ(i) * 3, p.getY(i)) * 0.3; p.setXYZ(i, p.getX(i) * k, p.getY(i) * k * 0.8, p.getZ(i) * k); }
-  geo.computeVertexNormals();
-  const mat = new THREE.MeshStandardMaterial({ roughness: 0.9, flatShading: true });
-  const mesh = new THREE.InstancedMesh(geo, mat, Math.max(1, spots.length));
-  const m = new THREE.Matrix4(), q = new THREE.Quaternion(), c = new THREE.Color(), base = new THREE.Color(tint || 0x3d7a33);
+  if (!leafMat) {
+    const map = leafTexture();
+    leafMat = new THREE.MeshStandardMaterial({ map, alphaTest: 0.5, side: THREE.DoubleSide, roughness: 0.8, emissive: 0x0e1806 });
+    leafDepth = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking, map, alphaTest: 0.5 });
+  }
+  const mesh = new THREE.InstancedMesh(crownGeometry(), leafMat, Math.max(1, spots.length));
+  mesh.customDepthMaterial = leafDepth;
+  const m = new THREE.Matrix4(), q = new THREE.Quaternion(), c = new THREE.Color(), base = new THREE.Color(tint || 0xe2f0c4);
   spots.forEach(([x, y, z], i) => {
-    const s = 0.7 + rand() * 1.3;
+    const s = 1.1 + rand() * 1.7;
     q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), rand() * 6.28);
-    m.compose(new THREE.Vector3(x, y + s * 0.45, z), q, new THREE.Vector3(s, s * (0.8 + rand() * 0.6), s));
+    m.compose(new THREE.Vector3(x, y + s * 0.35, z), q, new THREE.Vector3(s, s * (0.75 + rand() * 0.4), s));
     mesh.setMatrixAt(i, m);
-    c.copy(base).offsetHSL((rand() - 0.5) * 0.06, (rand() - 0.5) * 0.15, (rand() - 0.5) * 0.12);
+    c.copy(base).offsetHSL((rand() - 0.5) * 0.08, (rand() - 0.5) * 0.2, (rand() - 0.5) * 0.18);
     mesh.setColorAt(i, c);
   });
   mesh.count = spots.length;
-  mesh.castShadow = true; mesh.receiveShadow = true;
+  mesh.castShadow = true; // leaf cards shading each other would turn the crowns muddy
   return mesh;
 }
 

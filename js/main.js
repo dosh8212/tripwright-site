@@ -65,14 +65,42 @@ function setCurrent(i) {
   setTimeout(() => { whereLabel.textContent = label; whereLabel.classList.remove('swap'); }, 180);
 }
 
-/** Shows the panel that belongs to the film position: while the bird circles that island. */
+/* Between islands a small "next stop" card says where the bird is flying, so some text is always
+   on screen: the island's card shows while the bird circles it, then hands over to this card. */
+const PANEL_END = 0.7, ARRIVE = 0.97;
+let enroute, erName, erKicker, erTeaser, erBar, erTarget = -1;
+function makeEnroute() {
+  enroute = document.createElement('a');
+  enroute.className = 'enroute';
+  enroute.innerHTML = '<span class="er-k"></span><strong class="er-name"></strong><span class="er-t"></span><span class="er-bar"><i></i></span>';
+  [erKicker, erName, erTeaser, erBar] = ['.er-k', '.er-name', '.er-t', '.er-bar i'].map((q) => enroute.querySelector(q));
+  document.body.appendChild(enroute);
+}
+function setEnroute(next, progress) {
+  if (next !== erTarget) {
+    erTarget = next;
+    const b = beats[next], h = b.querySelector('h2');
+    enroute.href = '#' + b.id;
+    erKicker.textContent = next === beats.length - 1 ? 'Flying home' : `Next stop · Island ${next} of ${beats.length - 1}`;
+    erName.textContent = b.dataset.label;
+    erTeaser.textContent = h ? h.textContent.replace(/\s+/g, ' ').trim() : '';
+  }
+  erBar.style.transform = `scaleX(${Math.max(0.04, Math.min(1, progress)).toFixed(3)})`;
+}
+
+/** Shows exactly one thing at every scroll position: the island's card while the bird circles it,
+    otherwise the "next stop" card for the island ahead. */
 function updatePanels(film) {
-  beats.forEach((b, i) => {
-    const local = film - i;
-    const on = i === 0 ? film < 0.3 : local > 0.04 && local < (i === beats.length - 1 ? 1.5 : 0.62);
-    b.classList.toggle('on', on);
-  });
-  setCurrent(Math.min(beats.length - 1, Math.floor(film + 0.04)));
+  const last = beats.length - 1;
+  let i = Math.floor(film + (1 - ARRIVE)), local = film - i;
+  i = Math.min(i, last);
+  const end = i === 0 ? 0.4 : PANEL_END;
+  const panelOn = i === last || local < end;
+  beats.forEach((b, k) => b.classList.toggle('on', panelOn && k === i));
+  const flying = !panelOn;
+  if (flying) setEnroute(i + 1, (local - end) / (ARRIVE - end));
+  enroute.classList.toggle('on', flying);
+  setCurrent(i);
   root.style.setProperty('--progress', (film / beats.length).toFixed(4));
 }
 
@@ -91,6 +119,7 @@ function frameFor(world, film, k) {
 async function startFilm() {
   root.classList.add('film');
   splitHeadings();
+  makeEnroute();
   let world;
   try {
     const mod = await import('./world.js');

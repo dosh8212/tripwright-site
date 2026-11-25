@@ -139,8 +139,8 @@ h3 { font-size: 1.25rem; margin: 0 0 8px; }
 .scroll-cue { display: none; }
 
 /* ---------- Film mode: pinned scenes over the 3D sea ---------- */
-.film .beat { height: 280vh; }
-.film .hero { height: 190vh; }
+.film .beat { height: 240vh; }
+.film .hero { height: 170vh; }
 .film .port { height: 200vh; }
 .film .stick {
   position: sticky; top: 0; height: 100vh; height: 100svh; max-width: none; margin: 0;
@@ -164,6 +164,25 @@ h3 { font-size: 1.25rem; margin: 0 0 8px; }
 .film .panel .ticks li:nth-child(2) { transition-delay: .45s; }
 .film .panel .ticks li:nth-child(3) { transition-delay: .55s; }
 .film.ready .beat:not(.on) .panel .ticks li { opacity: 0; transform: translateX(-14px); transition-delay: 0s; }
+
+/* "Next stop" card shown while the bird flies between islands */
+.enroute { display: none; }
+.film .enroute {
+  display: grid; gap: 4px; position: fixed; z-index: 8; text-decoration: none; color: var(--ink);
+  left: max(16px, 5vw); bottom: calc(32px + env(safe-area-inset-bottom, 0px)); width: min(360px, calc(100vw - 32px));
+  padding: 16px 20px 18px; border-radius: 22px; background: var(--glass); border: 1px solid var(--glass-line);
+  -webkit-backdrop-filter: blur(18px) saturate(1.3); backdrop-filter: blur(18px) saturate(1.3);
+  box-shadow: 0 18px 50px rgba(12, 35, 64, .18);
+  opacity: 0; transform: translateY(24px) scale(.97); pointer-events: none;
+  transition: opacity .6s var(--ease), transform .8s var(--ease);
+}
+.film.ready .enroute.on { opacity: 1; transform: none; pointer-events: auto; transition-delay: .15s; }
+.enroute .er-k { font-size: .72rem; letter-spacing: .16em; text-transform: uppercase; font-weight: 700; color: var(--teal); }
+.enroute .er-name { font: 600 1.5rem/1.15 var(--display); }
+.enroute .er-t { font-size: .92rem; color: var(--ink-soft); line-height: 1.45; }
+.enroute .er-bar { display: block; height: 3px; margin-top: 8px; border-radius: 3px; background: rgba(12, 35, 64, .12); overflow: hidden; }
+.enroute .er-bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--amber), var(--coral)); transform-origin: left; transform: scaleX(.04); transition: transform .2s linear; }
+@media (max-width: 899px) { .film .enroute { left: 16px; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); } }
 
 .film .postcard { display: none; }
 @media (min-width: 1100px) {

@@ -112,9 +112,9 @@ export function makeOcean(mobile) {
         float thick = max(sd - vDist, 0.);
         float depth = thick * clamp(V.y + .12, .12, 1.);
         vec3 below = texture2D(tScene, ruv).rgb * mix(1., .35, night);
-        vec3 absorb = exp(-(depth * .5 + thick * .5) * vec3(.38, .085, .062));
-        vec3 deepCol = vec3(.004, .045, .09) * (1. - night * .7);
-        vec3 scatter = mix(vec3(.02, .24, .27), deepCol, 1. - exp(-depth * .11)) * (1. - night * .8);
+        vec3 absorb = exp(-(depth * .5 + thick * .5) * vec3(.34, .06, .05));
+        vec3 deepCol = vec3(.006, .12, .19) * (1. - night * .75);
+        vec3 scatter = mix(vec3(.03, .5, .5), deepCol, 1. - exp(-depth * .075 - thick * .025)) * (1. - night * .9);
         vec3 refr = below * absorb + scatter * (1. - absorb);
         vec3 col = mix(refr, refl, F);
 
@@ -126,8 +126,8 @@ export function makeOcean(mobile) {
         col += sunCol * (pow(nh, 700.) * 3.5 + pow(nh, 90.) * .35) * step(-.02, sunDir.y) * (1. - night);
         // Foam: along shores where the water is thin, and on the tallest crests
         float fn = fbm3(vWorld.xz * .55 + time * vec2(.25, .1)) + fbm3(vWorld.xz * 1.6 - time * .2) * .5;
-        float shore = 1. - smoothstep(0., 1.6, depth);
-        float foam = smoothstep(.55, .95, fn * .75 + shore * .8) * shore;
+        float shore = 1. - smoothstep(0., 1.1, depth);
+        float foam = smoothstep(.62, .98, fn * .8 + shore * .7) * shore * .8;
         foam += smoothstep(.68, .85, fbm3(vWorld.xz * 2.2 + time * .4)) * smoothstep(1., 1.7, vHeight) * .45 * fade;
         col = mix(col, vec3(.92, .96, .97) * (.25 + .75 * (1. - night)) * (.6 + .4 * max(sunDir.y + .3, 0.)), clamp(foam, 0., 1.) * .9);
 
