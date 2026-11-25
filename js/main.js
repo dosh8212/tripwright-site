@@ -144,8 +144,21 @@ function setupSnap() {
 /* Sound: off until the visitor turns it on; the choice is remembered for their next visit. */
 const ICON_ON = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
 const ICON_OFF = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16.5 9.5l5 5m0-5l-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+/** A short silent WAV, played through an <audio> element alongside the Web Audio sound: on iPhone
+    this lets the page's sound play even when the ring/silent switch is on silent. */
+function silentWav() {
+  const n = 4410, buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf);
+  const w = (o, str) => { for (let i = 0; i < str.length; i++) v.setUint8(o + i, str.charCodeAt(i)); };
+  w(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); w(8, 'WAVE'); w(12, 'fmt '); v.setUint32(16, 16, true);
+  v.setUint16(20, 1, true); v.setUint16(22, 1, true); v.setUint32(24, 44100, true); v.setUint32(28, 88200, true);
+  v.setUint16(32, 2, true); v.setUint16(34, 16, true); w(36, 'data'); v.setUint32(40, n * 2, true);
+  return URL.createObjectURL(new Blob([buf], { type: 'audio/wav' }));
+}
+
 async function setupSound() {
-  let sound = null, on = false;
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if (!AC) return { update() {} };
+  let on = false, ctx = null, sound = null, keepAlive = null;
   try { on = localStorage.getItem('tw-sound') === 'on'; } catch (e) { /* storage blocked: stay off */ }
   const btn = document.createElement('button');
   btn.type = 'button'; btn.className = 'sound-toggle';
@@ -157,22 +170,46 @@ async function setupSound() {
   show();
   const contact = document.querySelector('.top-contact');
   contact.parentNode.insertBefore(btn, contact);
-  const load = async () => { if (!sound) sound = (await import('./sound.js')).createSound(); return sound; };
-  const apply = async () => { const s = await load(); if (s) s.setOn(on); };
+  // Fetch the sound code now, so nothing needs to load (and the tap isn't "used up") when it's pressed
+  const modP = import('./sound.js');
+
+  /** Runs inside the tap itself: browsers (Safari especially) only let sound start here. */
+  function unlock() {
+    try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) { /* older Safari */ }
+    if (!ctx) ctx = new AC();
+    if (ctx.state !== 'running') ctx.resume();
+    const blip = ctx.createBufferSource(); blip.buffer = ctx.createBuffer(1, 1, 22050); blip.connect(ctx.destination); blip.start(0);
+    if (!keepAlive) { keepAlive = new Audio(silentWav()); keepAlive.loop = true; keepAlive.setAttribute('playsinline', ''); }
+    keepAlive.play().catch(() => {});
+  }
+  async function apply() {
+    if (on) unlock();
+    else if (keepAlive) keepAlive.pause();
+    if (!ctx) return;
+    if (!sound) sound = (await modP).createSound(ctx);
+    sound.setOn(on);
+  }
   btn.addEventListener('click', () => {
     on = !on; show();
     try { localStorage.setItem('tw-sound', on ? 'on' : 'off'); } catch (e) { /* not remembered */ }
     apply();
   });
-  if (on) { // remembered as on: browsers only allow sound after a tap or key press, so start on the first one
+  if (on) { // remembered as on: sound can only start with a tap or key press, so start on the first one
+    const events = ['click', 'touchend', 'keydown'];
     const start = (e) => {
       if (e.target.closest && e.target.closest('.sound-toggle')) return;
-      ['pointerdown', 'keydown', 'touchend'].forEach((t) => window.removeEventListener(t, start, true));
+      events.forEach((t) => window.removeEventListener(t, start, true));
       if (on) apply();
     };
-    ['pointerdown', 'keydown', 'touchend'].forEach((t) => window.addEventListener(t, start, true));
+    events.forEach((t) => window.addEventListener(t, start, true));
   }
-  return { update: (film) => { if (sound) sound.update(film); } };
+  // Silence while the tab is hidden, so it never plays in the background
+  document.addEventListener('visibilitychange', () => {
+    if (!ctx) return;
+    if (document.hidden) { ctx.suspend(); if (keepAlive) keepAlive.pause(); }
+    else if (on) { ctx.resume(); if (keepAlive) keepAlive.play().catch(() => {}); }
+  });
+  return { update: (film) => { if (sound && ctx.state === 'running') sound.update(film); } };
 }
 
 /** Where the subject should sit: right of the text on wide screens; on phones above the card,
