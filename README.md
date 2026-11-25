@@ -29,7 +29,7 @@ one feature; its card rises in while the bird circles it, and the sky runs from 
 
 - `js/main.js` turns the scroll position into a film position and shows the right card.
 - `js/world.js` draws the sky, sea, clouds, lights and the camera's flight; `js/islands.js` builds the
-  seven islands; `js/bird.js` builds and flaps the bird. Everything is made in code, no models or images.
+  seven islands; `js/bird.js` builds the gull (smooth body, painted feathers, wings that bend at the wrist) and flaps it. Everything is made in code, no models or images.
 - Without WebGL, or with reduced motion turned on, the same content shows as a normal stacked page.
 - No third-party requests: three.js and the Fraunces heading font (SIL OFL, `fonts/`) are served from here.
 - Keep the `#support` section and its email address: the App Store listing's Support URL points here.
