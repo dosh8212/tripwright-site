@@ -23,8 +23,14 @@ Only images the site or web app load (icons, `og-image.jpg`) belong here. Don't 
 
 ## Landing page
 
-`index.html` + `landing.css` + `landing.js` are the island-journey landing page (each feature is an
-island; the sky, route and paper plane follow the scroll). No build step and no third-party requests:
-the Fraunces heading font is self-hosted in `fonts/` (SIL Open Font License, `fonts/Fraunces-OFL.txt`).
-Keep the `#support` section and its email address: the App Store listing's Support URL points here.
-`style.css` is still used by `privacy/`, `terms/` and `404.html`.
+`index.html` + `landing.css` + `js/` are the landing page: a scroll film where a seabird flies from
+island to island over a 3D sea (three.js, vendored in `vendor/` with its MIT licence). Each island is
+one feature; its card rises in while the bird circles it, and the sky runs from dawn to night and back.
+
+- `js/main.js` turns the scroll position into a film position and shows the right card.
+- `js/world.js` draws the sky, sea, clouds, lights and the camera's flight; `js/islands.js` builds the
+  seven islands; `js/bird.js` builds and flaps the bird. Everything is made in code, no models or images.
+- Without WebGL, or with reduced motion turned on, the same content shows as a normal stacked page.
+- No third-party requests: three.js and the Fraunces heading font (SIL OFL, `fonts/`) are served from here.
+- Keep the `#support` section and its email address: the App Store listing's Support URL points here.
+  `style.css` is still used by `privacy/`, `terms/` and `404.html`.

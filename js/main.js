@@ -1,0 +1,119 @@
+// Scroll film: turns the page's scroll position into a "film" position (0 = departure, n = island n)
+// and drives the 3D world, the text panels, the top bar and the island rail from it.
+// Without WebGL, or with reduced motion, the page stays a plain stacked page (no .film class).
+
+const root = document.documentElement;
+const beats = Array.from(document.querySelectorAll('.beat'));
+const railLinks = Array.from(document.querySelectorAll('.rail a'));
+const whereLabel = document.querySelector('.where-label');
+const canvas = document.getElementById('world');
+
+/** True when the browser can draw WebGL. */
+function hasWebGL() {
+  try { const c = document.createElement('canvas'); return !!(c.getContext('webgl2') || c.getContext('webgl')); } catch (e) { return false; }
+}
+
+/** Splits each panel heading into words so they can rise in one after another. */
+function splitHeadings() {
+  document.querySelectorAll('.panel h2, .hero h1').forEach((h) => {
+    let i = 0;
+    const walk = (node) => {
+      Array.from(node.childNodes).forEach((n) => {
+        if (n.nodeType === 3) {
+          const frag = document.createDocumentFragment();
+          n.textContent.split(/(\s+)/).forEach((w) => {
+            if (!w) return;
+            if (/^\s+$/.test(w)) { frag.appendChild(document.createTextNode(w)); return; }
+            const s = document.createElement('span'); s.className = 'w'; s.style.setProperty('--i', i++);
+            const inner = document.createElement('span'); inner.textContent = w; s.appendChild(inner);
+            frag.appendChild(s);
+          });
+          n.replaceWith(frag);
+        } else if (n.nodeType === 1) walk(n);
+      });
+    };
+    walk(h);
+  });
+}
+
+/** Reads the film position the scroll asks for: beat index + progress through that beat. */
+function targetFilm() {
+  const y = window.scrollY, vh = window.innerHeight;
+  let film = 0;
+  for (let i = 0; i < beats.length; i++) {
+    const b = beats[i];
+    if (y + 1 < b.offsetTop) break;
+    const span = Math.max(1, b.offsetHeight - vh);
+    film = i + Math.min(1, (y - b.offsetTop) / span);
+  }
+  return film;
+}
+
+let current = -1;
+/** Marks the island in view in the top bar and the rail. */
+function setCurrent(i) {
+  if (i === current) return;
+  current = i;
+  railLinks.forEach((a, k) => {
+    a.classList.toggle('here', k === i);
+    a.classList.toggle('visited', k < i);
+    if (k === i) a.setAttribute('aria-current', 'location'); else a.removeAttribute('aria-current');
+  });
+  const label = beats[i] && beats[i].dataset.label;
+  if (!whereLabel || !label) return;
+  whereLabel.classList.add('swap');
+  setTimeout(() => { whereLabel.textContent = label; whereLabel.classList.remove('swap'); }, 180);
+}
+
+/** Shows the panel that belongs to the film position: while the bird circles that island. */
+function updatePanels(film) {
+  beats.forEach((b, i) => {
+    const local = film - i;
+    const on = i === 0 ? film < 0.3 : local > 0.04 && local < (i === beats.length - 1 ? 1.5 : 0.62);
+    b.classList.toggle('on', on);
+  });
+  setCurrent(Math.min(beats.length - 1, Math.floor(film + 0.04)));
+  root.style.setProperty('--progress', (film / beats.length).toFixed(4));
+}
+
+/** Where the subject should sit: right of the text on wide screens; on phones above the card,
+    except at departure, where the bird flies below the headline. Eased toward every frame. */
+const frame = { x: 0, y: 0 };
+function frameFor(world, film, k) {
+  const wide = window.innerWidth >= 900;
+  const hero = Math.max(0, 1 - film * 1.6);
+  const tx = wide ? 0.17 * (1 - hero) : 0;
+  const ty = wide ? 0 : 0.06 * hero - 0.17 * (1 - hero);
+  frame.x += (tx - frame.x) * k; frame.y += (ty - frame.y) * k;
+  world.setFrame(frame.x, frame.y);
+}
+
+async function startFilm() {
+  root.classList.add('film');
+  splitHeadings();
+  let world;
+  try {
+    const mod = await import('./world.js');
+    world = mod.createWorld(canvas);
+  } catch (e) {
+    root.classList.remove('film');
+    return;
+  }
+  window.addEventListener('resize', () => { world.resize(); });
+  let film = targetFilm(), last = performance.now(), first = true;
+  const loop = (now) => {
+    const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    const want = targetFilm();
+    film += (want - film) * (1 - Math.exp(-dt * 5)); // smooth, unhurried catch-up like a camera on rails
+    if (Math.abs(want - film) < 0.0005) film = want;
+    frameFor(world, film, first ? 1 : 1 - Math.exp(-dt * 4));
+    world.render(film, dt);
+    updatePanels(film);
+    if (first) { first = false; root.classList.add('ready'); }
+    requestAnimationFrame(loop);
+  };
+  requestAnimationFrame(loop);
+}
+
+const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+if (!reduce && hasWebGL() && canvas) startFilm();

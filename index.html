@@ -11,42 +11,18 @@
 <meta property="og:image" content="https://dosh8212.github.io/tripwright-site/app/og-image.jpg">
 <link rel="icon" href="app/favicon.png">
 <link rel="preload" href="fonts/fraunces-600.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="modulepreload" href="vendor/three.module.min.js">
 <link rel="stylesheet" href="landing.css">
 </head>
 <body>
 
-<!-- Fixed sky: colours and stars follow the scroll (landing.js) -->
-<div class="sky" aria-hidden="true">
-  <div class="stars"></div>
-  <div class="sun"></div>
-</div>
-
-<!-- Reusable drawings -->
-<svg width="0" height="0" style="position:absolute" aria-hidden="true">
-  <defs>
-    <symbol id="palm" viewBox="-60 -130 120 135" overflow="visible">
-      <path d="M-2 0 C 4 -40, 12 -80, 4 -112" fill="none" stroke="#7a5233" stroke-width="7" stroke-linecap="round"/>
-      <path d="M4 -112 C -20 -128, -44 -120, -58 -100 C -36 -112, -18 -110, 4 -112Z" fill="#2f8a5a"/>
-      <path d="M4 -112 C 26 -130, 50 -122, 60 -102 C 40 -112, 22 -112, 4 -112Z" fill="#37a066"/>
-      <path d="M4 -112 C -10 -96, -30 -84, -40 -70 C -26 -90, -14 -100, 4 -112Z" fill="#2a7d51"/>
-      <path d="M4 -112 C 20 -98, 36 -86, 44 -70 C 30 -88, 18 -100, 4 -112Z" fill="#33945e"/>
-      <path d="M4 -112 C 0 -132, 12 -140, 24 -138 C 14 -130, 8 -122, 4 -112Z" fill="#3fae70"/>
-    </symbol>
-    <symbol id="plane" viewBox="-24 -16 48 32" overflow="visible">
-      <path d="M23 0 L-21 -15 L-12 0 Z" fill="#fff4dc"/>
-      <path d="M23 0 L-21 15 L-12 0 Z" fill="#f3d39b"/>
-      <path d="M23 0 L-12 0 L-6 5 Z" fill="#e0a64a"/>
-    </symbol>
-    <symbol id="sea" viewBox="0 0 600 60" preserveAspectRatio="none">
-      <path class="wave wave-back" d="M0 18 Q 37.5 8 75 18 T 150 18 T 225 18 T 300 18 T 375 18 T 450 18 T 525 18 T 600 18 T 675 18 T 750 18 V60 H0Z" fill="#2a8fb0" opacity=".55"/>
-      <path class="wave wave-front" d="M0 28 Q 37.5 18 75 28 T 150 28 T 225 28 T 300 28 T 375 28 T 450 28 T 525 28 T 600 28 T 675 28 T 750 28 V60 H0Z" fill="#1f7898"/>
-    </symbol>
-  </defs>
-</svg>
+<!-- The 3D voyage (js/world.js). Without WebGL the page below reads as a normal stacked page. -->
+<canvas id="world" aria-hidden="true"></canvas>
+<div class="veil" aria-hidden="true"></div>
 
 <header class="topbar">
   <a class="brand" href="#top" aria-label="TripWright home">
-    <svg viewBox="-24 -16 48 32" width="28" height="20" aria-hidden="true"><use href="#plane"/></svg>
+    <svg viewBox="0 0 32 20" width="30" height="19" aria-hidden="true"><path d="M1 12 C 8 4, 12 4, 16 11 C 20 4, 24 4, 31 12 C 24 8, 20 9, 16 14 C 12 9, 8 8, 1 12Z" fill="currentColor"/></svg>
     <span>TripWright</span>
   </a>
   <p class="where" aria-live="polite"><span class="where-label">Departure</span></p>
@@ -54,67 +30,44 @@
   <div class="trip-progress" aria-hidden="true"><span></span></div>
 </header>
 
-<!-- Island map: jump to any stop; the plane shows how far you've travelled -->
 <nav class="rail" aria-label="Islands">
   <div class="rail-line"><span class="rail-fill"></span></div>
-  <svg class="rail-plane" viewBox="-24 -16 48 32" aria-hidden="true"><use href="#plane"/></svg>
   <ol>
-    <li><a href="#top" data-label="Departure"><span>Departure</span></a></li>
-    <li><a href="#plans" data-label="Isle of Plans"><span>Isle of Plans</span></a></li>
-    <li><a href="#bookings" data-label="Inbox Atoll"><span>Inbox Atoll</span></a></li>
-    <li><a href="#screenshots" data-label="Snapshot Key"><span>Snapshot Key</span></a></li>
-    <li><a href="#maps" data-label="Twin Isles"><span>Twin Isles</span></a></li>
-    <li><a href="#sharing" data-label="Harbor Isle"><span>Harbor Isle</span></a></li>
-    <li><a href="#privacy" data-label="Lighthouse Rock"><span>Lighthouse Rock</span></a></li>
-    <li><a href="#support" data-label="Home Port"><span>Home Port</span></a></li>
+    <li><a href="#top"><span>Departure</span></a></li>
+    <li><a href="#plans"><span>Isle of Plans</span></a></li>
+    <li><a href="#bookings"><span>Inbox Atoll</span></a></li>
+    <li><a href="#screenshots"><span>Snapshot Key</span></a></li>
+    <li><a href="#maps"><span>Twin Isles</span></a></li>
+    <li><a href="#sharing"><span>Harbor Isle</span></a></li>
+    <li><a href="#privacy"><span>Lighthouse Rock</span></a></li>
+    <li><a href="#port"><span>Home Port</span></a></li>
   </ol>
 </nav>
 
 <main>
 
-<!-- ============ DEPARTURE ============ -->
-<section id="top" class="stop hero" data-sky="#fbd3a8,#f7a58b" data-night="0.08" data-label="Departure">
-  <div class="hero-copy">
-    <p class="eyebrow">TripWright for iPhone</p>
-    <h1>Every trip is a voyage.<br><em>Plan it like one.</em></h1>
-    <p class="lede">TripWright turns booking emails, screenshots and a few ideas into a day-by-day plan, right on your iPhone. No account. No cloud AI. Your trips and photos stay with you.</p>
-    <div class="cta-row">
+<section id="top" class="beat hero" data-label="Departure">
+  <div class="stick">
+    <div class="hero-copy">
+      <p class="eyebrow">TripWright for iPhone</p>
+      <h1>Every trip is a voyage. <em>Plan it like one.</em></h1>
+      <p class="lede">TripWright turns booking emails, screenshots and a few ideas into a day-by-day plan, right on your iPhone. No account. No cloud AI. Your trips and photos stay with you.</p>
+      <div class="cta-row">
       <span class="store-soon" role="note">
         <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M16.4 12.6c0-2.4 2-3.5 2-3.6-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.2-2.8.8-3.5.8s-1.8-.8-3-.8c-1.5 0-3 .9-3.8 2.3-1.6 2.8-.4 7 1.2 9.3.8 1.1 1.7 2.4 2.9 2.3 1.2 0 1.6-.7 3-.7s1.8.7 3 .7c1.3 0 2.1-1.1 2.8-2.3.9-1.3 1.3-2.6 1.3-2.6s-2.5-1-2.5-3.6zM14.2 5.6c.6-.8 1.1-1.8 1-2.9-.9 0-2 .6-2.7 1.4-.6.7-1.1 1.8-1 2.8 1 .1 2-.5 2.7-1.3z"/></svg>
         <span><small>Coming soon to the</small>App Store</span>
       </span>
-      <a class="btn-ghost" href="#plans">Take the tour <span aria-hidden="true">↓</span></a>
+        <a class="btn-ghost" href="#plans">Take the tour <span aria-hidden="true">↓</span></a>
+      </div>
     </div>
-    <p class="hint">Seven islands, about two minutes. Scroll to set sail.</p>
-  </div>
-  <div class="hero-scene" aria-hidden="true">
-    <svg class="horizon" viewBox="0 0 800 420" preserveAspectRatio="xMidYMax meet">
-      <path d="M20 330 C 70 280, 130 290, 170 330Z" fill="#c77d78" opacity=".5"/>
-      <path d="M640 332 C 670 290, 730 286, 790 332Z" fill="#c77d78" opacity=".4"/>
-      <path class="route-hero" d="M90 300 C 200 120, 380 300, 520 150 S 720 70, 790 40" fill="none" stroke="#fff4dc" stroke-width="3" stroke-dasharray="2 10" stroke-linecap="round"/>
-      <ellipse cx="420" cy="334" rx="230" ry="26" fill="#ffd9b0" opacity=".6"/>
-      <path d="M230 334 C 280 300, 360 290, 420 290 C 500 290, 560 305, 610 334Z" fill="#f2d8a7"/>
-      <path d="M300 318 C 330 230, 380 200, 420 200 C 470 200, 510 250, 540 318Z" fill="#5fae6e"/>
-      <path d="M350 318 C 370 270, 400 250, 425 250 C 455 250, 480 280, 495 318Z" fill="#4c9a5d"/>
-      <use href="#palm" x="230" y="190" width="120" height="135"/>
-      <use href="#palm" x="520" y="200" width="100" height="112"/>
-      <use href="#palm" x="560" y="214" width="80" height="90"/>
-      <use href="#sea" x="0" y="326" width="800" height="94"/>
-    </svg>
-    <svg class="hero-plane" viewBox="-24 -16 48 32"><use href="#plane"/></svg>
+    <p class="scroll-cue" aria-hidden="true"><span></span>Scroll to fly</p>
   </div>
 </section>
 
-<!-- ============ 1. ISLE OF PLANS ============ -->
-<div class="passage" aria-hidden="true">
-  <svg viewBox="0 0 400 220" preserveAspectRatio="none"><path class="route" d="M60 0 C 60 90, 340 80, 330 220"/><path class="route-done" pathLength="1" d="M60 0 C 60 90, 340 80, 330 220"/></svg>
-  <svg class="passage-plane" viewBox="-24 -16 48 32"><use href="#plane"/></svg>
-  <p>Next stop: <strong>Isle of Plans</strong></p>
-</div>
-
-<section id="plans" class="stop" data-sky="#bfe6ff,#fff1d6" data-night="0" data-label="Isle of Plans">
-  <div class="copy">
-    <p class="eyebrow">Island 1 of 7 · Isle of Plans</p>
+<section id="plans" class="beat" data-label="Isle of Plans">
+  <div class="stick">
+    <article class="panel">
+      <p class="eyebrow">Island 1 of 7 · Isle of Plans</p>
     <h2>Start with a few words. Leave with a whole trip.</h2>
     <p>Tell <strong>Build my trip</strong> where you're going, for how long and what you love. Apple Intelligence drafts a day-by-day plan on your iPhone, and you check every activity before it joins your trip.</p>
     <ul class="ticks">
@@ -123,8 +76,8 @@
       <li>No Apple Intelligence? Copy a ready-made prompt into any chatbot you choose and paste the plan back.</li>
     </ul>
     <p class="also"><span>Also packed:</span> weather for each day · currency converter · confirmation codes in one tab · drag to reorder · print or save as PDF · sample trips to explore</p>
-  </div>
-  <div class="scene">
+    </article>
+    <div class="postcard" aria-hidden="true">
     <div class="phone">
       <div class="screen">
         <div class="ui-top"><span class="ui-back">‹</span> Build my trip</div>
@@ -138,30 +91,14 @@
         <div class="ui-button">Review 14 activities</div>
       </div>
     </div>
-    <svg class="island" viewBox="0 0 600 260" aria-hidden="true">
-      <ellipse cx="300" cy="200" rx="250" ry="34" fill="#9fd7dc" opacity=".6"/>
-      <path d="M70 200 C 120 160, 200 150, 260 150 C 340 150, 470 160, 530 200Z" fill="#f2d8a7"/>
-      <path d="M150 182 C 190 80, 260 40, 310 40 C 370 40, 420 110, 450 182Z" fill="#5fae6e"/>
-      <path d="M210 182 C 240 120, 280 90, 310 90 C 350 90, 380 140, 400 182Z" fill="#4c9a5d"/>
-      <path d="M250 180 C 280 160, 260 130, 300 110 C 330 95, 300 70, 312 46" fill="none" stroke="#fff4dc" stroke-width="3" stroke-dasharray="1 8" stroke-linecap="round"/>
-      <path d="M312 46 V 14" stroke="#7a5233" stroke-width="3"/><path class="flag" d="M312 14 L 340 22 L 312 30Z" fill="#ef6f56"/>
-      <use href="#palm" x="70" y="58" width="120" height="135"/>
-      <use href="#palm" x="420" y="66" width="110" height="124"/>
-      <use href="#sea" x="0" y="196" width="600" height="64"/>
-    </svg>
+    </div>
   </div>
 </section>
 
-<!-- ============ 2. INBOX ATOLL ============ -->
-<div class="passage flip" aria-hidden="true">
-  <svg viewBox="0 0 400 220" preserveAspectRatio="none"><path class="route" d="M330 0 C 330 100, 60 90, 70 220"/><path class="route-done" pathLength="1" d="M330 0 C 330 100, 60 90, 70 220"/></svg>
-  <svg class="passage-plane" viewBox="-24 -16 48 32"><use href="#plane"/></svg>
-  <p>Next stop: <strong>Inbox Atoll</strong></p>
-</div>
-
-<section id="bookings" class="stop alt" data-sky="#8fd3ff,#e6f7ff" data-night="0" data-label="Inbox Atoll">
-  <div class="copy">
-    <p class="eyebrow">Island 2 of 7 · Inbox Atoll</p>
+<section id="bookings" class="beat" data-label="Inbox Atoll">
+  <div class="stick">
+    <article class="panel">
+      <p class="eyebrow">Island 2 of 7 · Inbox Atoll</p>
     <h2>Your bookings wash ashore, already sorted.</h2>
     <p>Share a confirmation email, PDF or Wallet pass with TripWright. It reads the flight, hotel or restaurant details right on your phone and shows you what it found, so you can check it before it's added.</p>
     <ul class="ticks">
@@ -169,8 +106,8 @@
       <li>Confirmation codes are gathered in their own tab for the check-in desk.</li>
       <li>Read on the phone with fixed rules. The email itself is never uploaded.</li>
     </ul>
-  </div>
-  <div class="scene">
+    </article>
+    <div class="postcard" aria-hidden="true">
     <div class="phone">
       <div class="screen">
         <div class="ui-top"><span class="ui-back">‹</span> From email</div>
@@ -185,34 +122,14 @@
         <div class="ui-button">Add to my trip</div>
       </div>
     </div>
-    <svg class="island" viewBox="0 0 600 260" aria-hidden="true">
-      <ellipse cx="300" cy="195" rx="260" ry="46" fill="#f3dcab"/>
-      <ellipse cx="300" cy="195" rx="190" ry="26" fill="#7fd0d6"/>
-      <ellipse cx="300" cy="192" rx="150" ry="16" fill="#9adfe2" class="lagoon"/>
-      <g transform="translate(170 150)">
-        <rect x="-3" y="0" width="6" height="40" fill="#7a5233"/>
-        <path d="M-26 -30 H 14 A 16 16 0 0 1 30 -14 V 4 H -26Z" fill="#ef6f56"/>
-        <rect x="-26" y="-30" width="40" height="34" fill="#e65b45"/>
-        <path d="M30 -24 V -46 H 46 V -38 H 30" fill="#f2b44a"/>
-        <rect class="letter" x="-12" y="-44" width="22" height="15" rx="2" fill="#fff" stroke="#c9d6e3"/>
-      </g>
-      <use href="#palm" x="380" y="70" width="110" height="124"/>
-      <use href="#palm" x="440" y="88" width="90" height="102"/>
-      <use href="#sea" x="0" y="206" width="600" height="54"/>
-    </svg>
+    </div>
   </div>
 </section>
 
-<!-- ============ 3. SNAPSHOT KEY ============ -->
-<div class="passage" aria-hidden="true">
-  <svg viewBox="0 0 400 220" preserveAspectRatio="none"><path class="route" d="M70 0 C 80 110, 330 80, 330 220"/><path class="route-done" pathLength="1" d="M70 0 C 80 110, 330 80, 330 220"/></svg>
-  <svg class="passage-plane" viewBox="-24 -16 48 32"><use href="#plane"/></svg>
-  <p>Next stop: <strong>Snapshot Key</strong></p>
-</div>
-
-<section id="screenshots" class="stop" data-sky="#9ee3e3,#fdf1c4" data-night="0" data-label="Snapshot Key">
-  <div class="copy">
-    <p class="eyebrow">Island 3 of 7 · Snapshot Key</p>
+<section id="screenshots" class="beat" data-label="Snapshot Key">
+  <div class="stick">
+    <article class="panel">
+      <p class="eyebrow">Island 3 of 7 · Snapshot Key</p>
     <h2>Saw it on social? Screenshot it. It's on the plan.</h2>
     <p>Pick a handful of screenshots at once, like a café's post, a museum's opening hours or a friend's text, then tap Done. TripWright reads the text with Apple's Vision on your iPhone and turns each one into an activity.</p>
     <ul class="ticks">
@@ -220,8 +137,8 @@
       <li>Names, addresses and times are picked out for you to confirm.</li>
       <li>The images are never stored or sent anywhere. Only the details you keep are saved.</li>
     </ul>
-  </div>
-  <div class="scene">
+    </article>
+    <div class="postcard" aria-hidden="true">
     <div class="phone">
       <div class="screen">
         <div class="ui-top"><span class="ui-back">‹</span> Add from screenshots</div>
@@ -236,32 +153,14 @@
         <div class="ui-button">Done</div>
       </div>
     </div>
-    <svg class="island" viewBox="0 0 600 260" aria-hidden="true">
-      <path d="M100 205 C 150 170, 220 165, 300 168 C 400 170, 470 180, 510 205Z" fill="#f2d8a7"/>
-      <path d="M200 190 C 205 120, 250 100, 290 100 C 330 100, 360 120, 360 190 H 330 C 330 150, 315 135, 290 135 C 262 135, 240 150, 240 190Z" fill="#9a8b7a"/>
-      <path d="M210 190 C 215 130, 250 110, 290 110 C 300 110, 310 112, 318 116 C 290 118, 260 130, 250 190Z" fill="#b5a593"/>
-      <g class="polaroid" transform="translate(410 120) rotate(8)">
-        <rect x="-36" y="-44" width="72" height="80" rx="3" fill="#fffaf0" stroke="#e5d9c3"/>
-        <rect x="-28" y="-36" width="56" height="50" fill="#7fc8e0"/>
-        <circle cx="12" cy="-22" r="8" fill="#ffd36e"/>
-        <path d="M-28 14 L -8 -6 L 6 6 L 14 0 L 28 14Z" fill="#4c9a5d"/>
-      </g>
-      <use href="#palm" x="90" y="80" width="105" height="118"/>
-      <use href="#sea" x="0" y="200" width="600" height="60"/>
-    </svg>
+    </div>
   </div>
 </section>
 
-<!-- ============ 4. TWIN ISLES ============ -->
-<div class="passage flip" aria-hidden="true">
-  <svg viewBox="0 0 400 220" preserveAspectRatio="none"><path class="route" d="M330 0 C 320 90, 80 110, 70 220"/><path class="route-done" pathLength="1" d="M330 0 C 320 90, 80 110, 70 220"/></svg>
-  <svg class="passage-plane" viewBox="-24 -16 48 32"><use href="#plane"/></svg>
-  <p>Next stop: <strong>Twin Isles</strong></p>
-</div>
-
-<section id="maps" class="stop alt" data-sky="#ffd59e,#ffa784" data-night="0.05" data-label="Twin Isles">
-  <div class="copy">
-    <p class="eyebrow">Island 4 of 7 · Twin Isles</p>
+<section id="maps" class="beat" data-label="Twin Isles">
+  <div class="stick">
+    <article class="panel">
+      <p class="eyebrow">Island 4 of 7 · Twin Isles</p>
     <h2>Your day on the map, in your language.</h2>
     <p>Every stop gets a numbered pin that matches your list, so you can see the shape of the day at a glance. Open a foldable phone or use a wide screen and the map sits beside your itinerary instead of covering it.</p>
     <ul class="ticks">
@@ -269,8 +168,8 @@
       <li>Map labels in English, another language, or the local names.</li>
       <li>Open flat: plan on the left, map on the right. Half open like a laptop: map on top, plan below, and the map steps aside while you type.</li>
     </ul>
-  </div>
-  <div class="scene">
+    </article>
+    <div class="postcard" aria-hidden="true">
     <div class="phone fold">
       <div class="screen pane-list">
         <div class="ui-top">Day 2 · Kauai</div>
@@ -297,30 +196,14 @@
         <span class="lang-chip">English ▾</span>
       </div>
     </div>
-    <svg class="island" viewBox="0 0 600 260" aria-hidden="true">
-      <path d="M40 205 C 80 120, 160 100, 200 110 C 250 120, 270 170, 280 205Z" fill="#5fae6e"/>
-      <path d="M320 205 C 330 160, 370 110, 420 110 C 480 110, 540 150, 560 205Z" fill="#4c9a5d"/>
-      <path d="M30 205 C 90 190, 200 188, 290 205Z" fill="#f2d8a7"/>
-      <path d="M310 205 C 380 188, 480 190, 570 205Z" fill="#f2d8a7"/>
-      <path d="M240 168 Q 300 140 360 168" fill="none" stroke="#7a5233" stroke-width="5"/>
-      <path d="M240 168 V 196 M270 158 V 196 M300 154 V 196 M330 158 V 196 M360 168 V 196" stroke="#7a5233" stroke-width="3"/>
-      <g transform="translate(96 130)"><path d="M0 0 C -12 -14, -12 -30, 0 -34 C 12 -30, 12 -14, 0 0Z" fill="#ef6f56"/><circle cy="-22" r="5" fill="#fff"/></g>
-      <use href="#palm" x="500" y="96" width="90" height="102"/>
-      <use href="#sea" x="0" y="198" width="600" height="62"/>
-    </svg>
+    </div>
   </div>
 </section>
 
-<!-- ============ 5. HARBOR ISLE ============ -->
-<div class="passage" aria-hidden="true">
-  <svg viewBox="0 0 400 220" preserveAspectRatio="none"><path class="route" d="M70 0 C 60 120, 340 70, 330 220"/><path class="route-done" pathLength="1" d="M70 0 C 60 120, 340 70, 330 220"/></svg>
-  <svg class="passage-plane" viewBox="-24 -16 48 32"><use href="#plane"/></svg>
-  <p>Next stop: <strong>Harbor Isle</strong></p>
-</div>
-
-<section id="sharing" class="stop" data-sky="#ff9a76,#8b5fa8" data-night="0.3" data-label="Harbor Isle">
-  <div class="copy">
-    <p class="eyebrow">Island 5 of 7 · Harbor Isle</p>
+<section id="sharing" class="beat" data-label="Harbor Isle">
+  <div class="stick">
+    <article class="panel">
+      <p class="eyebrow">Island 5 of 7 · Harbor Isle</p>
     <h2>One link brings the whole crew aboard.</h2>
     <p>Share a trip in a single message, "Here's our Kauai Trip in TripWright", with a link that opens it in the app. Choose whether your travel partners can only look, or can update the plan with you.</p>
     <ul class="ticks">
@@ -328,8 +211,8 @@
       <li>Confirmation codes stay out of the link unless you choose to include them.</li>
       <li>AirDrop a trip with its photos to a friend who has TripWright, or make a Shared Album of your trip photos straight from the app.</li>
     </ul>
-  </div>
-  <div class="scene">
+    </article>
+    <div class="postcard" aria-hidden="true">
     <div class="phone">
       <div class="screen">
         <div class="ui-top">Share trip</div>
@@ -340,30 +223,14 @@
         <div class="ui-share-row"><span>AirDrop</span><span>Messages</span><span>Album</span></div>
       </div>
     </div>
-    <svg class="island" viewBox="0 0 600 260" aria-hidden="true">
-      <path d="M60 205 C 120 140, 230 130, 300 140 C 380 150, 430 170, 460 205Z" fill="#5fae6e"/>
-      <path d="M50 205 C 150 185, 330 182, 470 205Z" fill="#f2d8a7"/>
-      <rect x="400" y="186" width="160" height="8" fill="#8a5d3b"/>
-      <path d="M420 194 V 214 M460 194 V 214 M500 194 V 214 M540 194 V 214" stroke="#6d4a2f" stroke-width="5"/>
-      <g class="boat b1" transform="translate(470 196)"><path d="M-26 0 H 26 L 18 12 H -18Z" fill="#fff4dc"/><path d="M0 0 V -46" stroke="#7a5233" stroke-width="3"/><path d="M2 -44 L 24 -6 H 2Z" fill="#fff"/><path d="M-2 -40 L -20 -6 H -2Z" fill="#ef6f56"/></g>
-      <g class="boat b2" transform="translate(545 202)"><path d="M-18 0 H 18 L 12 9 H -12Z" fill="#fff4dc"/><path d="M0 0 V -32" stroke="#7a5233" stroke-width="2.5"/><path d="M2 -30 L 16 -4 H 2Z" fill="#f2b44a"/></g>
-      <g transform="translate(180 150)"><rect x="-22" y="-26" width="44" height="34" fill="#fff4dc"/><path d="M-28 -24 L 0 -46 L 28 -24Z" fill="#ef6f56"/><rect x="-6" y="-10" width="12" height="18" fill="#0c2340"/></g>
-      <use href="#palm" x="60" y="70" width="110" height="124"/>
-      <use href="#sea" x="0" y="204" width="600" height="56"/>
-    </svg>
+    </div>
   </div>
 </section>
 
-<!-- ============ 6. LIGHTHOUSE ROCK ============ -->
-<div class="passage flip" aria-hidden="true">
-  <svg viewBox="0 0 400 220" preserveAspectRatio="none"><path class="route" d="M330 0 C 330 100, 70 100, 70 220"/><path class="route-done" pathLength="1" d="M330 0 C 330 100, 70 100, 70 220"/></svg>
-  <svg class="passage-plane" viewBox="-24 -16 48 32"><use href="#plane"/></svg>
-  <p>Next stop: <strong>Lighthouse Rock</strong></p>
-</div>
-
-<section id="privacy" class="stop alt night" data-sky="#0c2340,#27467a" data-night="1" data-label="Lighthouse Rock">
-  <div class="copy">
-    <p class="eyebrow">Island 6 of 7 · Lighthouse Rock</p>
+<section id="privacy" class="beat night" data-label="Lighthouse Rock">
+  <div class="stick">
+    <article class="panel">
+      <p class="eyebrow">Island 6 of 7 · Lighthouse Rock</p>
     <h2>Your trip stays on your phone. That's the whole idea.</h2>
     <p>There's no account to make and nothing to sign in to. Trips and photos are saved on your iPhone, and the clever parts, reading bookings, reading screenshots and building plans, happen there too.</p>
     <div class="beacons">
@@ -373,23 +240,8 @@
       <div><b>No tracking</b><span>No ad trackers watching your plans.</span></div>
     </div>
     <p><a class="text-link" href="privacy/">Read the Privacy Policy →</a></p>
-  </div>
-  <div class="scene">
-    <svg class="island lighthouse" viewBox="0 0 600 340" aria-hidden="true">
-      <defs>
-        <linearGradient id="beam" x1="0" x2="1"><stop offset="0" stop-color="#ffe7a8" stop-opacity=".85"/><stop offset="1" stop-color="#ffe7a8" stop-opacity="0"/></linearGradient>
-      </defs>
-      <g class="beam-spin" style="transform-origin:300px 96px"><path d="M300 96 L 600 40 L 600 150Z" fill="url(#beam)"/><path d="M300 96 L 0 40 L 0 150Z" fill="url(#beam)" opacity=".5"/></g>
-      <path d="M150 290 C 170 230, 230 200, 300 200 C 380 200, 430 240, 460 290Z" fill="#3b4f6b"/>
-      <path d="M190 290 C 210 250, 250 232, 300 232 C 350 232, 390 256, 410 290Z" fill="#2c3d55"/>
-      <path d="M276 210 L 284 110 H 316 L 324 210Z" fill="#fff4dc"/>
-      <path d="M279 175 H 321 L 319 155 H 281Z M282 140 H 318 L 317 125 H 283Z" fill="#ef6f56"/>
-      <rect x="280" y="84" width="40" height="26" rx="3" fill="#ffe7a8" class="lamp"/>
-      <path d="M274 84 L 300 62 L 326 84Z" fill="#ef6f56"/>
-      <rect x="270" y="108" width="60" height="5" fill="#0c2340"/>
-      <g transform="translate(300 96)"><rect x="-9" y="-6" width="18" height="12" rx="2" fill="#0c2340" opacity=".3"/></g>
-      <use href="#sea" x="0" y="280" width="600" height="60"/>
-    </svg>
+    </article>
+    <div class="postcard" aria-hidden="true">
     <div class="phone mini">
       <div class="screen">
         <div class="ui-lock">
@@ -399,34 +251,46 @@
         </div>
       </div>
     </div>
+    </div>
   </div>
 </section>
 
-<!-- ============ 7. HOME PORT (support) ============ -->
-<div class="passage" aria-hidden="true">
-  <svg viewBox="0 0 400 220" preserveAspectRatio="none"><path class="route" d="M70 0 C 70 110, 200 120, 200 220"/><path class="route-done" pathLength="1" d="M70 0 C 70 110, 200 120, 200 220"/></svg>
-  <svg class="passage-plane" viewBox="-24 -16 48 32"><use href="#plane"/></svg>
-  <p>Final stop: <strong>Home Port</strong></p>
-</div>
-
-<section id="support" class="stop port" data-sky="#27467a,#f2b38a" data-night="0.45" data-label="Home Port">
-  <div class="port-head">
-    <p class="eyebrow">Island 7 of 7 · Home Port</p>
-    <h2>Questions? We're right here at the dock.</h2>
-    <p>Something not working, an idea for the next voyage, or a request to delete data? Email us and a real person will get back to you.</p>
+<section id="port" class="beat port" data-label="Home Port">
+  <div class="stick">
+    <article class="panel">
+      <p class="eyebrow">Island 7 of 7 · Home Port</p>
+      <h2>Land softly. Your next trip starts here.</h2>
+      <p>That's the whole voyage: plan it, gather your bookings, map your days and bring your crew, all from one iPhone app that keeps your trips to itself.</p>
+      <div class="cta-row">
+      <span class="store-soon" role="note">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M16.4 12.6c0-2.4 2-3.5 2-3.6-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.2-2.8.8-3.5.8s-1.8-.8-3-.8c-1.5 0-3 .9-3.8 2.3-1.6 2.8-.4 7 1.2 9.3.8 1.1 1.7 2.4 2.9 2.3 1.2 0 1.6-.7 3-.7s1.8.7 3 .7c1.3 0 2.1-1.1 2.8-2.3.9-1.3 1.3-2.6 1.3-2.6s-2.5-1-2.5-3.6zM14.2 5.6c.6-.8 1.1-1.8 1-2.9-.9 0-2 .6-2.7 1.4-.6.7-1.1 1.8-1 2.8 1 .1 2-.5 2.7-1.3z"/></svg>
+        <span><small>Coming soon to the</small>App Store</span>
+      </span>
+        <a class="btn-ghost" href="#support">Contact us <span aria-hidden="true">↓</span></a>
+      </div>
+    </article>
   </div>
+</section>
 
-  <div class="port-grid">
-    <a class="contact-card" href="mailto:aaproducts8212+tripwright@gmail.com?subject=TripWright">
-      <span class="contact-icon" aria-hidden="true">
+</main>
+
+<section id="support" class="support">
+  <div class="support-inner">
+    <div class="support-head">
+      <p class="eyebrow">Support</p>
+      <h2>Questions? We're right here at the dock.</h2>
+      <p>Something not working, an idea for the next voyage, or a request to delete data? Email us and a real person will get back to you.</p>
+    </div>
+    <div class="support-grid">
+      <a class="contact-card" href="mailto:aaproducts8212+tripwright@gmail.com?subject=TripWright">
+        <span class="contact-icon" aria-hidden="true">
         <svg viewBox="0 0 24 24" width="28" height="28"><path fill="currentColor" d="M3 5h18a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zm1 2.4V17h16V7.4l-8 5.3zM5.6 7l6.4 4.3L18.4 7z"/></svg>
       </span>
-      <span class="contact-label">Email support</span>
-      <span class="mail">aaproducts8212+tripwright@gmail.com</span>
-      <span class="contact-go">Write to us →</span>
-    </a>
-
-    <div class="faq">
+        <span class="contact-label">Email support</span>
+        <span class="mail">aaproducts8212+tripwright@gmail.com</span>
+        <span class="contact-go">Write to us →</span>
+      </a>
+      <div class="faq">
       <h3>Common questions</h3>
       <details>
         <summary>Where are my trips stored?</summary>
@@ -449,27 +313,13 @@
         <p>TripWright is coming soon to the App Store for iPhone. Email us if you'd like a note when it's out.</p>
       </details>
     </div>
+    </div>
   </div>
-
-  <svg class="island port-town" viewBox="0 0 900 200" aria-hidden="true">
-    <path d="M0 160 C 120 110, 260 100, 420 110 C 600 120, 760 120, 900 150 V 200 H 0Z" fill="#4c9a5d"/>
-    <path d="M0 170 C 200 150, 600 148, 900 166 V 200 H 0Z" fill="#f2d8a7"/>
-    <g transform="translate(300 118)"><rect x="-20" y="-24" width="40" height="30" fill="#fff4dc"/><path d="M-26 -22 L 0 -42 L 26 -22Z" fill="#ef6f56"/><rect class="window" x="-5" y="-14" width="10" height="10" fill="#ffd36e"/></g>
-    <g transform="translate(360 124)"><rect x="-16" y="-20" width="32" height="26" fill="#d9ecf2"/><path d="M-21 -18 L 0 -34 L 21 -18Z" fill="#0c2340"/><rect class="window" x="-4" y="-12" width="8" height="8" fill="#ffd36e"/></g>
-    <g transform="translate(420 120)"><rect x="-22" y="-26" width="44" height="32" fill="#f7c9a9"/><path d="M-28 -24 L 0 -44 L 28 -24Z" fill="#2f8a5a"/><rect class="window" x="-5" y="-16" width="10" height="10" fill="#ffd36e"/></g>
-    <rect x="560" y="160" width="200" height="8" fill="#8a5d3b"/>
-    <path d="M580 168 V 192 M630 168 V 192 M680 168 V 192 M730 168 V 192" stroke="#6d4a2f" stroke-width="5"/>
-    <use href="#palm" x="150" y="30" width="110" height="124"/>
-    <use href="#palm" x="760" y="40" width="100" height="112"/>
-    <use href="#sea" x="0" y="176" width="900" height="24"/>
-  </svg>
 </section>
-
-</main>
 
 <footer class="site-footer">
   <div>
-    <a class="brand" href="#top"><svg viewBox="-24 -16 48 32" width="24" height="16" aria-hidden="true"><use href="#plane"/></svg><span>TripWright</span></a>
+    <a class="brand" href="#top"><span>TripWright</span></a>
     <p>Plan your trips day by day, on your iPhone.</p>
   </div>
   <nav aria-label="Footer">
@@ -480,6 +330,6 @@
   <p class="fine">© 2026 TripWright. Apple, iPhone, AirDrop and App Store are trademarks of Apple Inc.</p>
 </footer>
 
-<script src="landing.js" defer></script>
+<script type="module" src="js/main.js"></script>
 </body>
 </html>
