@@ -1,8 +1,8 @@
 # TripWright public site
 
-Privacy policy, terms and support pages for the TripWright app, served with GitHub Pages:
+Landing page, privacy policy, terms and support for the TripWright app, served with GitHub Pages:
 
-- https://dosh8212.github.io/tripwright-site/ (support)
+- https://dosh8212.github.io/tripwright-site/ (landing page; the support section is `#support`, the store's Support URL)
 - https://dosh8212.github.io/tripwright-site/privacy/
 - https://dosh8212.github.io/tripwright-site/terms/
 
@@ -20,3 +20,11 @@ addresses to `app/` (GitHub Pages has no rewrites), and `.nojekyll` serves every
 ## Images
 
 Only images the site or web app load (icons, `og-image.jpg`) belong here. Don't commit preview or feature screenshots.
+
+## Landing page
+
+`index.html` + `landing.css` + `landing.js` are the island-journey landing page (each feature is an
+island; the sky, route and paper plane follow the scroll). No build step and no third-party requests:
+the Fraunces heading font is self-hosted in `fonts/` (SIL Open Font License, `fonts/Fraunces-OFL.txt`).
+Keep the `#support` section and its email address: the App Store listing's Support URL points here.
+`style.css` is still used by `privacy/`, `terms/` and `404.html`.
