@@ -3,6 +3,8 @@
 import * as THREE from '../vendor/three.module.min.js';
 import { createBird } from './bird.js';
 import { islandBuilders } from './islands.js';
+import { makeOcean } from './ocean.js';
+import { seabed } from './terrain.js';
 
 /* Sky for each stop: zenith, horizon, sun colour, sun height (radians), night amount. */
 const SKIES = [
@@ -18,9 +20,9 @@ const SKIES = [
 
 /* Island centres, winding across the sea. */
 const ISLANDS = [
-  [0, 0, -150], [120, 0, -290], [20, 0, -450], [150, 0, -600], [40, 0, -760], [170, 0, -900], [70, 0, -1060],
+  [0, 0, -170], [140, 0, -330], [20, 0, -500], [170, 0, -670], [40, 0, -850], [190, 0, -1010], [70, 0, -1190],
 ].map(([x, y, z]) => new THREE.Vector3(x, y, z));
-const ORBIT_R = 46;
+const ORBIT_R = 64;
 
 const tmpA = new THREE.Color(), tmpB = new THREE.Color();
 /** Blends two hex colours into target. */
@@ -56,58 +58,7 @@ function makeSky() {
         float s = max(dot(vDir, sunDir), 0.);
         col += sunCol * (pow(s, 900.) * 3. + pow(s, 24.) * .45 * (1. - night * .6));
         gl_FragColor = vec4(col, 1.);
-        #include <colorspace_fragment>
-      }`,
-  }));
-  return { mesh, uniforms };
-}
-
-/** Ocean: a large plane displaced by layered waves, shaded with fresnel and sun glints. */
-function makeOcean() {
-  const uniforms = {
-    time: { value: 0 }, deep: { value: new THREE.Color(0x0e4f74) }, shallow: { value: new THREE.Color(0x2aa3b8) },
-    skyCol: { value: new THREE.Color() }, sunCol: { value: new THREE.Color() }, sunDir: { value: new THREE.Vector3() },
-    fogCol: { value: new THREE.Color() }, fogNear: { value: 200 }, fogFar: { value: 1400 }, night: { value: 0 },
-    isl: { value: ISLANDS.map((c) => new THREE.Vector2(c.x, c.z)) },
-  };
-  const geo = new THREE.PlaneGeometry(5000, 5000, 220, 220);
-  geo.rotateX(-Math.PI / 2);
-  const mesh = new THREE.Mesh(geo, new THREE.ShaderMaterial({
-    uniforms,
-    vertexShader: `uniform float time; varying vec3 vWorld; varying vec3 vNormal; varying float vDist;
-      // One wave: adds its height and slope (dh/dx, dh/dz) to acc.
-      void wave(vec2 p, vec2 d, float f, float s, float a, inout vec3 acc){
-        float ph = dot(p, d) * f + time * s;
-        acc += vec3(sin(ph) * a, cos(ph) * a * f * d.x, cos(ph) * a * f * d.y);
-      }
-      void main(){
-        vec3 p = (modelMatrix * vec4(position,1.)).xyz;
-        vec3 w = vec3(0.);
-        wave(p.xz, normalize(vec2(.8,.6)), .035, 1.1, 1.3, w);
-        wave(p.xz, normalize(vec2(-.5,.9)), .07, 1.7, .55, w);
-        wave(p.xz, normalize(vec2(.2,-1.)), .16, 2.6, .22, w);
-        wave(p.xz, normalize(vec2(.9,-.3)), .31, 3.4, .08, w);
-        p.y += w.x;
-        vNormal = normalize(vec3(-w.y, 1., -w.z));
-        vWorld = p;
-        vec4 mv = viewMatrix * vec4(p,1.);
-        vDist = -mv.z;
-        gl_Position = projectionMatrix * mv;
-      }`,
-    fragmentShader: `uniform vec3 deep, shallow, skyCol, sunCol, sunDir, fogCol; uniform float fogNear, fogFar, night; uniform vec2 isl[7]; varying vec3 vWorld; varying vec3 vNormal; varying float vDist;
-      void main(){
-        vec3 n = normalize(vNormal);
-        vec3 v = normalize(cameraPosition - vWorld);
-        float fres = pow(1. - max(dot(n, v), 0.), 4.);
-        vec3 water = mix(deep, shallow, clamp((1. - n.y) * 6. + .25, 0., 1.)) * (1. - night * .75);
-        float d = 1e5;
-        for (int i = 0; i < 7; i++) d = min(d, distance(vWorld.xz, isl[i]));
-        water = mix(water, vec3(.33, .82, .8) * (1. - night * .7), (1. - smoothstep(18., 52., d)) * .75);
-        vec3 col = mix(water, skyCol, fres * .85);
-        vec3 r = reflect(-sunDir, n);
-        col += sunCol * pow(max(dot(r, v), 0.), 220.) * 1.1 * step(0., sunDir.y + .05);
-        col = mix(col, fogCol, smoothstep(fogNear, fogFar, vDist));
-        gl_FragColor = vec4(col, 1.);
+        #include <tonemapping_fragment>
         #include <colorspace_fragment>
       }`,
   }));
@@ -150,9 +101,9 @@ function makeRoute() {
   ISLANDS.forEach((c, i) => {
     const toward = new THREE.Vector3().subVectors(c, prev).setY(0).normalize();
     const side = new THREE.Vector3(-toward.z, 0, toward.x).multiplyScalar(i % 2 ? 1 : -1);
-    const arrive = c.clone().addScaledVector(toward, -ORBIT_R).addScaledVector(side, ORBIT_R * 0.5).setY(22);
-    const pass = c.clone().addScaledVector(side, ORBIT_R).setY(16);
-    const leave = c.clone().addScaledVector(toward, ORBIT_R * 0.8).addScaledVector(side, ORBIT_R * 0.6).setY(20);
+    const arrive = c.clone().addScaledVector(toward, -ORBIT_R).addScaledVector(side, ORBIT_R * 0.5).setY(28);
+    const pass = c.clone().addScaledVector(side, ORBIT_R).setY(21);
+    const leave = c.clone().addScaledVector(toward, ORBIT_R * 0.8).addScaledVector(side, ORBIT_R * 0.6).setY(25);
     marks.push({ arrive: pts.length, leave: pts.length + 2 });
     pts.push(arrive, pass, leave);
     prev = leave;
@@ -163,22 +114,32 @@ function makeRoute() {
 
 /** Creates the world on a canvas. Returns { render(film, dt), resize(), setFrame(side) }. */
 export function createWorld(canvas) {
+  const mobile = Math.min(window.innerWidth, window.innerHeight) < 700;
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, mobile ? 1.5 : 2));
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.05;
+  renderer.toneMappingExposure = 1.0;
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  // What lies under the water (seabed, island slopes), drawn first so the sea can show it through
+  const under = new THREE.WebGLRenderTarget(4, 4, { depthTexture: new THREE.DepthTexture(4, 4), samples: 0 });
+  const underScale = mobile ? 0.6 : 1;
 
   const scene = new THREE.Scene();
   scene.fog = new THREE.Fog(0xffffff, 260, 1500);
-  const camera = new THREE.PerspectiveCamera(55, 1, 0.5, 6000);
+  const camera = new THREE.PerspectiveCamera(55, 1, 1, 6000);
 
   const sky = makeSky(); scene.add(sky.mesh);
-  const ocean = makeOcean(); scene.add(ocean.mesh);
+  const ocean = makeOcean(mobile); scene.add(ocean.mesh);
   const stars = makeStars(); scene.add(stars);
   const clouds = makeClouds(); scene.add(clouds.group);
 
   const hemi = new THREE.HemisphereLight(0xffffff, 0x2a6f8a, 1.2); scene.add(hemi);
   const sun = new THREE.DirectionalLight(0xffffff, 2.2); scene.add(sun, sun.target);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(mobile ? 1024 : 2048, mobile ? 1024 : 2048);
+  Object.assign(sun.shadow.camera, { left: -70, right: 70, top: 70, bottom: -70, near: 10, far: 700 });
+  sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.06;
   const moon = new THREE.DirectionalLight(0x8ea8ff, 0); moon.position.set(-200, 300, -400); scene.add(moon);
 
   const islands = islandBuilders.map((build, i) => {
@@ -186,6 +147,7 @@ export function createWorld(canvas) {
   });
 
   const bird = createBird(); bird.scale.setScalar(1.15); scene.add(bird);
+  bird.traverse((m) => { if (m.isMesh) m.castShadow = true; });
   const route = makeRoute();
 
   const state = { time: 0, camPos: new THREE.Vector3(-30, 140, 190), look: new THREE.Vector3(0, 90, 0), roll: 0, lastTan: new THREE.Vector3(0, 0, -1), frameX: 0, frameY: 0 };
@@ -215,11 +177,15 @@ export function createWorld(canvas) {
     const dir = new THREE.Vector3(Math.sin(az) * Math.cos(elev), Math.sin(elev), -Math.cos(az) * Math.cos(elev));
     sky.uniforms.top.value.copy(topCol); sky.uniforms.hor.value.copy(horCol); sky.uniforms.sunCol.value.copy(sunCol);
     sky.uniforms.sunDir.value.copy(dir); sky.uniforms.night.value = night;
-    ocean.uniforms.skyCol.value.copy(horCol).lerp(topCol, 0.3); ocean.uniforms.sunCol.value.copy(sunCol);
-    ocean.uniforms.sunDir.value.copy(dir); ocean.uniforms.fogCol.value.copy(horCol); ocean.uniforms.night.value = night;
+    const o = ocean.uniforms;
+    o.top.value.copy(topCol); o.hor.value.copy(horCol); o.sunCol.value.copy(sunCol);
+    o.sunDir.value.copy(dir); o.fogCol.value.copy(horCol); o.night.value = night;
+    seabed.sun.value = Math.max(0, Math.sin(elev) + 0.1) * (1 - night);
     scene.fog.color.copy(horCol);
     sun.color.copy(sunCol); sun.intensity = Math.max(0, Math.sin(elev) + 0.15) * 2.6 * (1 - night);
-    sun.position.copy(state.look).addScaledVector(dir, 300); sun.target.position.copy(state.look);
+    // Shadows cover the island in view (or the bird at departure)
+    const focus = film >= 1 ? ISLANDS[Math.min(Math.floor(film + 0.45), 7) - 1] || ISLANDS[6] : state.look;
+    sun.target.position.copy(focus); sun.position.copy(focus).addScaledVector(dir.y > 0.05 ? dir : new THREE.Vector3(0, 1, 0), 300);
     hemi.color.copy(topCol).lerp(new THREE.Color(0xffffff), 0.5); hemi.intensity = 0.55 + (1 - night) * 0.75;
     moon.intensity = night * 0.9;
     stars.material.opacity = Math.max(0, night - 0.1) * 1.1;
@@ -232,6 +198,7 @@ export function createWorld(canvas) {
     state.time += dt;
     const night = applySky(film);
     ocean.uniforms.time.value = state.time;
+    seabed.time.value = state.time;
 
     const u = routeParam(film);
     const pos = route.curve.getPoint(u);
@@ -269,6 +236,17 @@ export function createWorld(canvas) {
 
     islands.forEach((g) => g.tick && g.tick(state.time, night));
     clouds.group.children.forEach((c, i) => { c.material.opacity = c.userData.base * (i < 70 ? THREE.MathUtils.clamp(1.4 - film * 1.2, 0, 1) : 1); });
+    // Pass 1: everything except sea, sky and clouds into a texture; pass 2: the full scene
+    ocean.mesh.position.set(camera.position.x, 0, camera.position.z);
+    ocean.mesh.visible = false; sky.mesh.visible = false; clouds.group.visible = false; stars.visible = false;
+    // No haze under water (the sea adds its own), so push the fog away for this pass
+    const fogNear = scene.fog.near, fogFar = scene.fog.far;
+    scene.fog.near = 1e6; scene.fog.far = 2e6;
+    renderer.setRenderTarget(under);
+    renderer.render(scene, camera);
+    renderer.setRenderTarget(null);
+    scene.fog.near = fogNear; scene.fog.far = fogFar;
+    ocean.mesh.visible = true; sky.mesh.visible = true; clouds.group.visible = true; stars.visible = true;
     renderer.render(scene, camera);
   }
 
@@ -287,6 +265,10 @@ export function createWorld(canvas) {
   function resize() {
     const w = window.innerWidth, h = window.innerHeight;
     renderer.setSize(w, h, false);
+    const buf = renderer.getDrawingBufferSize(new THREE.Vector2());
+    under.setSize(Math.round(buf.x * underScale), Math.round(buf.y * underScale));
+    ocean.uniforms.res.value.copy(buf);
+    ocean.uniforms.tScene.value = under.texture; ocean.uniforms.tDepth.value = under.depthTexture;
     camera.aspect = w / h;
     camera.fov = w < h ? 68 : 55;
     applyFrame();

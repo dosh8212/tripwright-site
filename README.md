@@ -28,8 +28,11 @@ island to island over a 3D sea (three.js, vendored in `vendor/` with its MIT lic
 one feature; its card rises in while the bird circles it, and the sky runs from dawn to night and back.
 
 - `js/main.js` turns the scroll position into a film position and shows the right card.
-- `js/world.js` draws the sky, sea, clouds, lights and the camera's flight; `js/islands.js` builds the
-  seven islands; `js/bird.js` builds the gull (smooth body, painted feathers, wings that bend at the wrist) and flaps it. Everything is made in code, no models or images.
+- `js/world.js` draws the sky, clouds, lights, shadows and the camera's flight. `js/ocean.js` is the sea:
+  Gerstner swell, ripples, sky reflections, sun glitter and clear water that shows the seabed (drawn first
+  into a texture) tinted by depth, with foam along the shores. `js/terrain.js` makes natural island
+  terrain, palms, jungle and boulders, with light caustics on the seabed; `js/islands.js` builds the
+  seven islands and their landmarks; `js/bird.js` builds the gull (smooth body, painted feathers, wings that bend at the wrist) and flaps it. Everything is made in code, no models or images.
 - Without WebGL, or with reduced motion turned on, the same content shows as a normal stacked page.
 - No third-party requests: three.js and the Fraunces heading font (SIL OFL, `fonts/`) are served from here.
 - Keep the `#support` section and its email address: the App Store listing's Support URL points here.
