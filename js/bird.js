@@ -149,11 +149,19 @@ export function createBird() {
     glint.position.set(s * 0.335, 0.16, 1.67); body.add(glint);
   });
 
-  // Feet tucked back under the tail
-  [-1, 1].forEach((s) => {
-    const leg = new THREE.Mesh(new THREE.CapsuleGeometry(0.04, 0.45, 4, 6), legMat);
-    leg.rotation.x = Math.PI / 2 - 0.25; leg.position.set(s * 0.14, -0.34, -1.0); body.add(leg);
+  // Legs: tucked back under the tail in flight, lowered under the body to land
+  const legs = [-1, 1].map((s) => {
+    const leg = new THREE.Mesh(new THREE.CapsuleGeometry(0.045, 0.5, 4, 6), legMat);
+    const foot = new THREE.Mesh(new THREE.SphereGeometry(0.11, 8, 4), legMat);
+    foot.scale.set(1, 0.25, 1.5); foot.position.set(0, -0.3, 0.08); leg.add(foot);
+    leg.userData.s = s; body.add(leg); return leg;
   });
+  const placeLegs = (down) => legs.forEach((leg) => {
+    leg.rotation.x = THREE.MathUtils.lerp(Math.PI / 2 - 0.25, 0.08, down);
+    leg.position.set(leg.userData.s * THREE.MathUtils.lerp(0.14, 0.17, down), THREE.MathUtils.lerp(-0.34, -0.7, down), THREE.MathUtils.lerp(-1.0, -0.12, down));
+    leg.children[0].visible = down > 0.3;
+  });
+  placeLegs(0);
 
   // Tail fan
   const tailGeo = new THREE.PlaneGeometry(1.15, 1.0, 4, 4);
@@ -167,8 +175,9 @@ export function createBird() {
   [right, left].forEach((w) => { w.mesh.position.set(0, 0.2, 0.15); body.add(w.mesh); });
 
   let phase = 0;
-  /** Beats the wings: strong strokes with a lagging wrist and tip, or a near-still glide. */
-  bird.flap = (dt, effort) => {
+  /** Beats the wings: strong strokes with a lagging wrist and tip, or a near-still glide.
+      legs (0..1) lowers the legs to land; fold (0..1) folds the wings back along the body. */
+  bird.flap = (dt, effort, legs = 0, fold = 0) => {
     phase += dt * (4.2 + effort * 3.6);
     const amp = 0.1 + effort * 0.55;
     const s = Math.sin(phase);
@@ -176,10 +185,19 @@ export function createBird() {
     const wrist = Math.sin(phase - 0.7) * amp * 0.75 - 0.08 - (s < 0 ? 0 : effort * 0.12);
     const tip = Math.sin(phase - 1.3) * amp * 0.55 + 0.04;
     const sweep = 0.12 + (1 - effort) * 0.1 + Math.max(0, Math.cos(phase)) * 0.12 * effort;
-    right.bend(shoulder, wrist, tip, sweep);
-    left.bend(shoulder, wrist, tip, sweep);
-    body.position.y = -s * 0.1 * effort;
-    tail.rotation.x = Math.sin(phase * 0.5) * 0.04;
+    const L = THREE.MathUtils.lerp, f = fold * fold * (3 - 2 * fold);
+    right.bend(L(shoulder, -0.12, f), L(wrist, 0.04, f), L(tip, 0.02, f), L(sweep, 0, f));
+    left.bend(L(shoulder, -0.12, f), L(wrist, 0.04, f), L(tip, 0.02, f), L(sweep, 0, f));
+    [right, left].forEach((w, k) => {
+      const side = k ? -1 : 1;
+      // swing the wing back to lie along the body, its outer edge tilted down over the flank
+      w.mesh.rotation.set(0.45 * f, side * f * 1.47, 0, 'YXZ');
+      w.mesh.scale.set(1 - 0.47 * f, 1, 1 - 0.35 * f);
+      w.mesh.position.set(side * 0.5 * f, 0.2 + 0.14 * f, 0.15 + 0.45 * f);
+    });
+    placeLegs(legs);
+    body.position.y = -s * 0.1 * effort * (1 - f);
+    tail.rotation.x = Math.sin(phase * 0.5) * 0.04 * (1 - f) - 0.12 * f;
   };
   bird.flap(0, 0.5);
   return bird;

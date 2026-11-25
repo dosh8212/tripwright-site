@@ -149,6 +149,10 @@ export function createWorld(canvas) {
   const bird = createBird(); bird.scale.setScalar(1.15); scene.add(bird);
   bird.traverse((m) => { if (m.isMesh) m.castShadow = true; });
   const route = makeRoute();
+  // Landing: after circling Home Port the gull glides down onto the last post of its dock
+  islands.forEach((g) => g.updateMatrixWorld(true));
+  const perch = islands[6].localToWorld(islands[6].userData.perch.clone()).add(new THREE.Vector3(0, 1.15, 0));
+  const LAND_FROM = 7.4;
 
   const state = { time: 0, camPos: new THREE.Vector3(-30, 140, 190), look: new THREE.Vector3(0, 90, 0), roll: 0, lastTan: new THREE.Vector3(0, 0, -1), frameX: 0, frameY: 0 };
   const sunCol = new THREE.Color(), horCol = new THREE.Color(), topCol = new THREE.Color();
@@ -200,19 +204,28 @@ export function createWorld(canvas) {
     ocean.uniforms.time.value = state.time;
     seabed.time.value = state.time;
 
-    const u = routeParam(film);
+    const S = THREE.MathUtils.smoothstep;
+    const land = S(film, LAND_FROM, 7.86), legs = S(film, 7.6, 7.78), fold = S(film, 7.86, 7.97);
+    const u = routeParam(Math.min(film, LAND_FROM));
     const pos = route.curve.getPoint(u);
     const tan = route.curve.getTangent(Math.min(u + 0.0005, 1)).normalize();
+    const seaward = new THREE.Vector3().subVectors(perch, ISLANDS[6]).setY(0).normalize();
+    if (land > 0) {
+      const dir = new THREE.Vector3().subVectors(perch, pos).setY(0).normalize();
+      pos.lerp(perch, land);
+      tan.lerp(dir, Math.min(1, land * 3)).setY(0).normalize().lerp(seaward, fold).normalize();
+    }
     // Bank into turns: compare heading with last frame's heading.
     const turn = state.lastTan.x * tan.z - state.lastTan.z * tan.x;
-    state.roll = THREE.MathUtils.lerp(state.roll, THREE.MathUtils.clamp(-turn * 40, -0.7, 0.7), 0.08);
+    state.roll = THREE.MathUtils.lerp(state.roll, THREE.MathUtils.clamp(-turn * 40, -0.7, 0.7), 0.08) * (1 - land);
     state.lastTan.copy(tan);
     bird.position.copy(pos);
-    bird.position.y += Math.sin(state.time * 1.7) * 0.4;
+    bird.position.y += Math.sin(state.time * 1.7) * 0.4 * (1 - land);
     bird.lookAt(pos.clone().add(tan));
     bird.rotateZ(state.roll);
-    const effort = THREE.MathUtils.clamp(0.35 + tan.y * 2.5 + (film < 1 ? 0.3 : 0), 0.08, 1);
-    bird.flap(dt, effort);
+    bird.rotateX(-0.55 * legs * (1 - fold)); // flare: nose up, wings braking, just before touchdown
+    const cruise = THREE.MathUtils.clamp(0.35 + tan.y * 2.5 + (film < 1 ? 0.3 : 0), 0.08, 1);
+    bird.flap(dt, THREE.MathUtils.lerp(cruise, 1, legs), legs, fold);
 
     // Camera: behind and above the bird; while circling an island, swing out so the island is in shot.
     const local = film - Math.floor(film);
@@ -228,6 +241,11 @@ export function createWorld(canvas) {
     const lookAt = pos.clone().addScaledVector(tan, 10);
     if (film < 1) lookAt.y += 8 * (1 - film);
     if (island) lookAt.lerp(island.clone().setY(6), 0.62 * near);
+    if (land > 0) { // end on the gull on its post, with the town behind
+      const side = new THREE.Vector3(-seaward.z, 0, seaward.x);
+      want.lerp(pos.clone().addScaledVector(seaward, 9).addScaledVector(side, 4).add(new THREE.Vector3(0, 2.2, 0)), land);
+      lookAt.lerp(pos.clone().lerp(ISLANDS[6].clone().setY(4), 0.12), land);
+    }
     const k = 1 - Math.pow(0.0015, dt);
     state.camPos.lerp(want, k);
     state.look.lerp(lookAt, k);

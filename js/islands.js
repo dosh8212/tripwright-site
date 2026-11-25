@@ -215,9 +215,10 @@ function homePort() {
     const a = -0.95 + i * 0.38, x = Math.sin(a) * 17, z = Math.cos(a) * 17 - 2;
     const hs = house(3 + (i % 2), w, r); hs.position.set(x, h(x, z) - 0.2, z); hs.rotation.y = a; g.add(hs); return hs;
   });
-  const dock = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.35, 24), mat(C.wood)); dock.position.set(0, 1.1, 30); g.add(shadows(dock));
-  for (let i = 0; i < 6; i++) { const post = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 4, 8), mat(0x6d4a2f)); post.position.set(i % 2 ? 1.4 : -1.4, -0.6, 20 + i * 4); g.add(shadows(post)); }
-  const b = boat(2.4, C.coral); b.position.set(5, 0, 36); g.add(b);
+  const dock = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.35, 24), mat(C.wood)); dock.position.set(0, 1.7, 30); g.add(shadows(dock));
+  for (let i = 0; i < 6; i++) { const post = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 4.6, 8), mat(0x6d4a2f)); post.position.set(i % 2 ? 1.4 : -1.4, -0.4, 20 + i * 4); g.add(shadows(post)); }
+  g.userData.perch = new THREE.Vector3(1.4, 1.9, 40); // top of the last dock post, where the gull lands
+  const b = boat(2.4, C.coral); b.position.set(-7, 0, 33); g.add(b);
   g.tick = (t, night) => {
     b.rotation.z = Math.sin(t * 1.3) * 0.07; b.position.y = Math.sin(t * 1.4) * 0.35 - 0.1;
     houses.forEach((hs) => { hs.userData.window.material.emissiveIntensity = night * 2; });
