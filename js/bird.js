@@ -1,55 +1,231 @@
-// A seabird (a gull) built in code: a smooth body turned from a side profile, long wings that bend
-// at the wrist as they beat, painted feathers with separated black primaries, and a fanned tail.
+// A herring gull built in code. The body and head are sculpted from cross-sections (deep chest,
+// slim neck, round head) and painted with feathers: white below, a grey mantle on the back. The
+// long wings bend at the wrist as they beat, with grey upper coverts, white trailing edges, black
+// primaries that separate into "fingers" with white mirrors, and a paler underside. The face has a
+// pale yellow eye with a red orbital ring and a hooked yellow bill with the red gonys spot.
 // Faces +z so Object3D.lookAt() points it along the flight path.
 import * as THREE from '../vendor/three.module.min.js';
 
 const SPAN = 5.2;          // one wing, shoulder to tip
-const COLS = 28, ROWS = 7; // wing mesh resolution (span x chord)
+const COLS = 32, ROWS = 8; // wing mesh resolution (span x chord)
+const W = 1024, H = 512;   // wing texture size
 
-/** Paints the upper wing: grey coverts, white trailing edge, black primaries with white spots, ragged tips. */
-function wingTexture() {
-  const c = document.createElement('canvas'); c.width = 512; c.height = 256;
+/* ---------- Feather painting ---------- */
+
+let seed = 3;
+const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+
+/** Paints one feather: a rounded vane along a shaft from (x0,y0) to (x1,y1), with a soft edge and shaft line. */
+function feather(x, x0, y0, x1, y1, width, fill, edge, shaft) {
+  const ang = Math.atan2(y1 - y0, x1 - x0), len = Math.hypot(x1 - x0, y1 - y0);
+  x.save(); x.translate(x0, y0); x.rotate(ang);
+  x.beginPath();
+  x.moveTo(0, -width * 0.35);
+  x.bezierCurveTo(len * 0.3, -width * 0.55, len * 0.85, -width * 0.5, len, 0);
+  x.bezierCurveTo(len * 0.85, width * 0.5, len * 0.3, width * 0.55, 0, width * 0.35);
+  x.closePath();
+  x.fillStyle = fill; x.fill();
+  if (edge) { x.strokeStyle = edge; x.lineWidth = 1.2; x.stroke(); }
+  if (shaft) { x.strokeStyle = shaft; x.lineWidth = 0.9; x.beginPath(); x.moveTo(0, 0); x.lineTo(len * 0.92, 0); x.stroke(); }
+  x.restore();
+}
+
+/** Cuts the gaps between the outer primaries and rounds the wingtip (the same cut for both sides). */
+function cutWingShape(x) {
+  x.save();
+  x.globalCompositeOperation = 'destination-out';
+  for (let i = 0; i < 6; i++) { // slots between the "fingers"
+    const u = 742 + i * 46, depth = 150 + i * 30;
+    x.beginPath(); x.moveTo(u + 8, H + 2); x.quadraticCurveTo(u + 22, H - depth * 0.5, u + 30, H - depth); x.lineTo(u + 40, H + 2); x.fill();
+  }
+  x.beginPath(); x.moveTo(W + 2, -2); x.lineTo(W + 2, H + 2); x.lineTo(958, H + 2); x.quadraticCurveTo(1012, 230, W + 2, -2); x.fill();
+  // fine serration along the trailing edge of the secondaries
+  for (let u = 8; u < 720; u += 22) { x.beginPath(); x.moveTo(u, H + 2); x.lineTo(u + 11, H - 7); x.lineTo(u + 22, H + 2); x.fill(); }
+  x.restore();
+}
+
+/** The upper wing: grey coverts in overlapping rows, white-tipped secondaries, black primaries. */
+function upperWing() {
+  seed = 11;
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
   const x = c.getContext('2d');
   // u (left to right) = shoulder to tip; v (top to bottom) = leading edge to trailing edge
-  const base = x.createLinearGradient(0, 0, 512, 0);
-  base.addColorStop(0, '#c9d1da'); base.addColorStop(0.62, '#b7c1cc'); base.addColorStop(0.72, '#2a2f36'); base.addColorStop(1, '#14171c');
-  x.fillStyle = base; x.fillRect(0, 0, 512, 256);
-  // soft shading toward the leading edge
-  const lead = x.createLinearGradient(0, 0, 0, 256);
-  lead.addColorStop(0, 'rgba(255,255,255,.35)'); lead.addColorStop(0.35, 'rgba(255,255,255,0)');
-  x.fillStyle = lead; x.fillRect(0, 0, 512, 256);
-  // white trailing edge on the inner wing
-  const trail = x.createLinearGradient(0, 180, 0, 256);
-  trail.addColorStop(0, 'rgba(255,255,255,0)'); trail.addColorStop(1, 'rgba(255,255,255,.95)');
-  x.fillStyle = trail; x.fillRect(0, 180, 360, 76);
-  // secondary feather lines
-  x.strokeStyle = 'rgba(80,92,110,.35)'; x.lineWidth = 1.2;
-  for (let i = 0; i < 26; i++) { const u = 20 + i * 13; x.beginPath(); x.moveTo(u, 150); x.lineTo(u + 6, 256); x.stroke(); }
-  // primaries: long black feathers with gaps between their tips, and white "mirror" spots near the end
-  x.globalCompositeOperation = 'destination-out';
-  for (let i = 0; i < 7; i++) {
-    const u = 370 + i * 20;
-    x.beginPath(); x.moveTo(u + 10, 256); x.quadraticCurveTo(u + 15, 200 - i * 6, u + 19, 150 - i * 12); x.lineTo(u + 22, 256); x.fill();
+  const base = x.createLinearGradient(0, 0, 0, H);
+  base.addColorStop(0, '#b9c3cc'); base.addColorStop(0.4, '#a5b0bb'); base.addColorStop(1, '#9ca8b4');
+  x.fillStyle = base; x.fillRect(0, 0, W, H);
+  // secondaries: long feathers pointing back, with broad white tips
+  for (let u = 6; u < 735; u += 21) feather(x, u + 10, 250, u + 14, H + 30, 30, '#9eaab6', 'rgba(70,82,96,.28)', 'rgba(70,82,96,.25)');
+  const tips = x.createLinearGradient(0, H - 92, 0, H);
+  tips.addColorStop(0, 'rgba(255,255,255,0)'); tips.addColorStop(0.45, 'rgba(250,251,252,.92)'); tips.addColorStop(1, '#fbfcfd');
+  x.fillStyle = tips; x.fillRect(0, H - 92, 735, 92);
+  // greater, median and lesser coverts: rows of overlapping rounded feathers, smaller toward the leading edge
+  [[250, 44, 34], [175, 34, 27], [112, 26, 21], [62, 18, 15], [26, 12, 10]].forEach(([v, len, step], row) => {
+    for (let u = 4 + (row % 2) * step * 0.5; u < 760 - row * 10; u += step) {
+      const g = 164 + Math.round(rnd() * 10) + row * 4;
+      feather(x, u, v - len * 0.7, u + 4, v + len * 0.35, step * 1.25, `rgb(${g - 8},${g},${g + 9})`, 'rgba(70,82,96,.2)', null);
+    }
+  });
+  // leading edge: a soft pale band
+  const lead = x.createLinearGradient(0, 0, 0, 40);
+  lead.addColorStop(0, 'rgba(240,244,247,.85)'); lead.addColorStop(1, 'rgba(240,244,247,0)');
+  x.fillStyle = lead; x.fillRect(0, 0, W, 40);
+  // primaries: black outer feathers fanning to the tip, with white "mirrors" and small white tips
+  const prim = x.createLinearGradient(700, 0, 860, 0);
+  prim.addColorStop(0, 'rgba(26,28,33,0)'); prim.addColorStop(1, 'rgba(26,28,33,1)');
+  for (let i = 0; i < 10; i++) {
+    const u0 = 640 + i * 30, tipX = 760 + i * 28, tipY = H - 10 - i * 34;
+    const grey = i < 3 ? '#9ea9b4' : '#1d2025';
+    feather(x, u0, 70 + i * 8, tipX, tipY, 46, grey, 'rgba(0,0,0,.45)', 'rgba(255,255,255,.12)');
+    if (i >= 3) { x.fillStyle = 'rgba(250,250,250,.95)'; x.beginPath(); x.ellipse(tipX - 6, tipY - 4, 7, 5, 0, 0, Math.PI * 2); x.fill(); }
   }
-  x.beginPath(); x.moveTo(512, 0); x.lineTo(512, 256); x.lineTo(470, 256); x.quadraticCurveTo(505, 120, 512, 0); x.fill();
-  x.globalCompositeOperation = 'source-over';
-  x.fillStyle = 'rgba(255,255,255,.9)';
-  [[488, 70, 9], [462, 120, 7]].forEach(([u, v, r]) => { x.beginPath(); x.ellipse(u, v, r, r * 1.6, 0, 0, Math.PI * 2); x.fill(); });
-  x.strokeStyle = 'rgba(0,0,0,.45)'; x.lineWidth = 1;
-  for (let i = 0; i < 9; i++) { const u = 372 + i * 16; x.beginPath(); x.moveTo(u, 60); x.lineTo(u + 8, 256); x.stroke(); }
+  x.fillStyle = prim; x.fillRect(700, 0, W - 700, 60); // dark leading edge out at the hand
+  const hand = x.createLinearGradient(770, 0, 860, 0); // the outer wing is black above
+  hand.addColorStop(0, 'rgba(24,26,30,0)'); hand.addColorStop(1, 'rgba(24,26,30,.92)');
+  x.fillStyle = hand; x.fillRect(770, 0, W - 770, H);
+  x.fillStyle = 'rgba(248,249,250,.95)';
+  [[972, 70, 13, 22], [930, 150, 10, 17]].forEach(([u, v, rx, ry]) => { x.beginPath(); x.ellipse(u, v, rx, ry, -0.4, 0, Math.PI * 2); x.fill(); });
+  cutWingShape(x);
+  return finishTexture(c);
+}
+
+/** The underwing: white, with translucent grey flight feathers and black tips. */
+function underWing() {
+  seed = 11;
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const x = c.getContext('2d');
+  x.fillStyle = '#eef1f3'; x.fillRect(0, 0, W, H);
+  for (let u = 6; u < 735; u += 21) feather(x, u + 10, 260, u + 14, H + 30, 30, 'rgba(196,205,213,.9)', 'rgba(120,130,142,.2)', 'rgba(255,255,255,.5)');
+  const tips = x.createLinearGradient(0, H - 70, 0, H);
+  tips.addColorStop(0, 'rgba(255,255,255,0)'); tips.addColorStop(1, 'rgba(252,253,253,.95)');
+  x.fillStyle = tips; x.fillRect(0, H - 70, 735, 70);
+  for (let i = 0; i < 10; i++) {
+    const u0 = 640 + i * 30, tipX = 760 + i * 28, tipY = H - 10 - i * 34;
+    feather(x, u0, 70 + i * 8, tipX, tipY, 46, 'rgba(160,168,178,.95)', 'rgba(60,66,74,.3)', null);
+    if (i >= 3) { // dark tips show through from below
+      x.save(); x.globalAlpha = 0.9;
+      feather(x, u0 + (tipX - u0) * 0.62, 70 + i * 8 + (tipY - 70 - i * 8) * 0.62, tipX, tipY, 40, '#2a2d33', null, null);
+      x.restore();
+      x.fillStyle = 'rgba(250,250,250,.9)'; x.beginPath(); x.ellipse(tipX - 6, tipY - 4, 7, 5, 0, 0, Math.PI * 2); x.fill();
+    }
+  }
+  x.fillStyle = 'rgba(248,249,250,.9)';
+  [[972, 70, 13, 22], [930, 150, 10, 17]].forEach(([u, v, rx, ry]) => { x.beginPath(); x.ellipse(u, v, rx, ry, -0.4, 0, Math.PI * 2); x.fill(); });
+  // leading-edge coverts: small and white
+  for (let u = 4; u < 700; u += 14) feather(x, u, 6, u + 4, 70, 18, 'rgba(250,251,252,.9)', 'rgba(150,160,170,.15)', null);
+  cutWingShape(x);
+  return finishTexture(c);
+}
+
+/** The body: white plumage with a grey mantle on the back, all in small soft feathers. */
+function bodyTexture() {
+  seed = 5;
+  const c = document.createElement('canvas'); c.width = 512; c.height = 512;
+  const x = c.getContext('2d');
+  // u (left to right) = around the body, starting on top; v (top to bottom) = tail to bill
+  x.fillStyle = '#f6f7f8'; x.fillRect(0, 0, 512, 512);
+  // grey mantle along the back (top = both edges of the texture), from the rump to the base of the neck
+  const mantle = (u0) => {
+    const g = x.createRadialGradient(u0, 205, 10, u0, 205, 150);
+    g.addColorStop(0, 'rgba(172,184,196,1)'); g.addColorStop(0.6, 'rgba(176,188,199,.9)'); g.addColorStop(1, 'rgba(176,188,199,0)');
+    x.fillStyle = g; x.save(); x.translate(u0, 205); x.scale(0.62, 1); x.translate(-u0, -205);
+    x.beginPath(); x.arc(u0, 205, 150, 0, Math.PI * 2); x.fill(); x.restore();
+  };
+  mantle(0); mantle(512);
+  // feather scales everywhere: faint arcs, denser and finer on the head
+  for (let i = 0; i < 2600; i++) {
+    const u = rnd() * 512, v = rnd() * 512, s = v > 380 ? 3 + rnd() * 3 : 6 + rnd() * 7;
+    const onMantle = (u < 120 || u > 392) && v > 60 && v < 360;
+    x.strokeStyle = onMantle ? 'rgba(90,104,120,.16)' : 'rgba(150,158,170,.12)';
+    x.lineWidth = 1; x.beginPath(); x.arc(u, v, s, 0.15 * Math.PI, 0.85 * Math.PI); x.stroke();
+    x.strokeStyle = 'rgba(255,255,255,.25)'; x.beginPath(); x.arc(u, v - 1.5, s, 0.25 * Math.PI, 0.75 * Math.PI); x.stroke();
+  }
+  // belly: very slightly warm and shaded underneath
+  const belly = x.createLinearGradient(170, 0, 342, 0);
+  belly.addColorStop(0, 'rgba(232,226,218,0)'); belly.addColorStop(0.5, 'rgba(232,226,218,.35)'); belly.addColorStop(1, 'rgba(232,226,218,0)');
+  x.fillStyle = belly; x.fillRect(0, 60, 512, 330);
+  return finishTexture(c);
+}
+
+function finishTexture(c) {
   const t = new THREE.CanvasTexture(c);
-  t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8;
+  t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; t.generateMipmaps = true;
   return t;
 }
 
 /** Paints the tail: white feathers with faint shafts and a soft rounded edge. */
 function tailTexture() {
-  const c = document.createElement('canvas'); c.width = 128; c.height = 128;
+  const c = document.createElement('canvas'); c.width = 256; c.height = 256;
   const x = c.getContext('2d');
-  x.fillStyle = '#f7f8f9'; x.beginPath(); x.moveTo(64, 0); x.lineTo(4, 112); x.quadraticCurveTo(64, 132, 124, 112); x.closePath(); x.fill();
-  x.strokeStyle = 'rgba(150,160,175,.4)';
-  for (let i = -5; i <= 5; i++) { x.beginPath(); x.moveTo(64, 6); x.lineTo(64 + i * 11, 118); x.stroke(); }
-  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+  for (let i = -5; i <= 5; i++) feather(x, 128, 10, 128 + i * 21, 236 - Math.abs(i) * 4, 34, '#f7f8f9', 'rgba(150,160,175,.35)', 'rgba(150,160,175,.4)');
+  return finishTexture(c);
+}
+
+/* ---------- Shapes ---------- */
+
+/** Smooth interpolation through a list of [t, ...values] keys (Catmull-Rom). */
+function profile(keys) {
+  return (t) => {
+    let i = 0; while (i < keys.length - 2 && t > keys[i + 1][0]) i++;
+    const k0 = keys[Math.max(0, i - 1)], k1 = keys[i], k2 = keys[i + 1], k3 = keys[Math.min(keys.length - 1, i + 2)];
+    const f = Math.min(1, Math.max(0, (t - k1[0]) / (k2[0] - k1[0])));
+    return k1.slice(1).map((_, j) => {
+      const p0 = k0[j + 1], p1 = k1[j + 1], p2 = k2[j + 1], p3 = k3[j + 1];
+      return 0.5 * (2 * p1 + (-p0 + p2) * f + (2 * p0 - 5 * p1 + 4 * p2 - p3) * f * f + (-p0 + 3 * p1 - 3 * p2 + p3) * f * f * f);
+    });
+  };
+}
+
+/** A smooth closed shape swept along z: each key gives centre height, half-width, and upper and lower depth. */
+function sweptShape(keys, along, around, colorAt) {
+  const prof = profile(keys), z0 = keys[0][0], z1 = keys[keys.length - 1][0];
+  const pos = [], uv = [], col = [], idx = [];
+  for (let i = 0; i <= along; i++) {
+    const z = z0 + (z1 - z0) * (i / along), [cy, w, up, lo] = prof(z);
+    for (let j = 0; j <= around; j++) {
+      const a = (j / around) * Math.PI * 2; // 0 = top, then down the right side
+      const sx = Math.sin(a), cy2 = Math.cos(a);
+      const y = cy + (cy2 > 0 ? up : lo) * cy2;
+      pos.push(Math.max(w, 0.001) * sx, y, z); uv.push(j / around, i / along);
+      if (colorAt) col.push(...colorAt(i / along, a, sx, cy2));
+    }
+  }
+  for (let i = 0; i < along; i++) for (let j = 0; j < around; j++) {
+    const a = i * (around + 1) + j, b = a + around + 1;
+    idx.push(a, b, a + 1, a + 1, b, b + 1);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  if (colorAt) g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  g.setIndex(idx); g.computeVertexNormals();
+  return g;
+}
+
+/** Body and head: [z, centre height, half-width, depth above, depth below], tail to the base of the bill. */
+const BODY = [
+  [-1.9, 0.06, 0.03, 0.03, 0.03], [-1.6, 0.07, 0.18, 0.12, 0.12], [-1.1, 0.05, 0.34, 0.25, 0.29],
+  [-0.4, 0.0, 0.48, 0.33, 0.43], [0.3, 0.0, 0.5, 0.33, 0.45], [0.85, 0.06, 0.41, 0.29, 0.37],
+  [1.18, 0.17, 0.27, 0.25, 0.24], [1.45, 0.27, 0.28, 0.29, 0.25], [1.72, 0.28, 0.25, 0.26, 0.22],
+  [1.93, 0.22, 0.13, 0.15, 0.13], [2.0, 0.21, 0.02, 0.02, 0.02],
+];
+
+/** The bill: deep and slightly hooked, with the gonys angle on the lower edge. [z, centre, half-width, up, down] */
+function billGeometry() {
+  const keys = [];
+  for (let k = 0; k <= 12; k++) {
+    const t = k / 12, z = 1.9 + t * 0.62;
+    const upE = 0.1 - 0.1 * t - 0.04 * THREE.MathUtils.smoothstep(t, 0.8, 1);
+    const loE = -0.085 + 0.02 * t - 0.032 * Math.exp(-(((t - 0.7) / 0.09) ** 2)) + 0.025 * THREE.MathUtils.smoothstep(t, 0.78, 1);
+    const w = (0.105 * (1 - t) + 0.02) * (t > 0.92 ? (1 - t) / 0.08 * 0.8 + 0.2 : 1);
+    keys.push([z, 0.21 + (upE + loE) / 2, w, (upE - loE) / 2, (upE - loE) / 2]);
+  }
+  const yellow = new THREE.Color(0xf3c23a), tip = new THREE.Color(0xf7d978), red = new THREE.Color(0xd8382a), gape = new THREE.Color(0xa07818), c = new THREE.Color();
+  return sweptShape(keys, 24, 16, (t, a, sx, cy) => {
+    c.copy(yellow).lerp(tip, THREE.MathUtils.smoothstep(t, 0.75, 1));
+    if (cy < -0.08 && t > 0.58 && t < 0.84) c.lerp(red, Math.min(1, THREE.MathUtils.smoothstep(-cy, 0.08, 0.3) * 1.4 * (1 - Math.abs(t - 0.71) / 0.13)));
+    if (Math.abs(cy + 0.05) < 0.09 && t < 0.86) c.lerp(gape, 0.75); // the line where the mandibles meet
+    return [c.r, c.g, c.b];
+  });
 }
 
 /** Leading and trailing edge of the wing at span fraction s (z, forward is +). */
@@ -59,14 +235,18 @@ function edges(s) {
   return [le, te];
 }
 
-/** One wing as a bendable grid. Returns the mesh and bend(shoulder, wrist, tip, side) which re-poses it. */
-function makeWing(side, material) {
+/** One wing as a bendable grid, painted grey above and pale below.
+    Returns a group to position, and bend(shoulder, wrist, tip, sweep) which re-poses it. */
+function makeWing(side, upperMat, underMat) {
   const geo = new THREE.PlaneGeometry(1, 1, COLS, ROWS);
   const uv = geo.attributes.uv;
   for (let r = 0; r <= ROWS; r++) for (let c = 0; c <= COLS; c++) uv.setXY(r * (COLS + 1) + c, c / COLS, 1 - r / ROWS);
   const pos = geo.attributes.position;
-  const mesh = new THREE.Mesh(geo, material);
-  mesh.frustumCulled = false;
+  const mesh = new THREE.Group();
+  // The grid's front faces point up on one wing and down on the other, so pick sides to match
+  const top = new THREE.Mesh(geo, upperMat[side > 0 ? 0 : 1]), bottom = new THREE.Mesh(geo, underMat[side > 0 ? 0 : 1]);
+  [top, bottom].forEach((m) => { m.frustumCulled = false; mesh.add(m); });
+  mesh.userData.parts = [top, bottom];
   const ss = (a, b, v) => { const t = Math.min(1, Math.max(0, (v - a) / (b - a))); return t * t * (3 - 2 * t); };
 
   /** Bends the wing: each column is placed from the previous one at the angle for its span position. */
@@ -84,7 +264,8 @@ function makeWing(side, material) {
       const [le, te] = edges(s);
       for (let r = 0; r <= ROWS; r++) {
         const v = r / ROWS;
-        const camber = Math.sin(Math.PI * Math.min(1, v * 1.25)) * 0.09 * (1 - s * 0.6);
+        // aerofoil: rounded and thick at the leading edge, thin at the back
+        const camber = Math.sin(Math.PI * Math.min(1, v * 1.2)) * 0.1 * (1 - s * 0.6) + (v < 0.12 ? (0.12 - v) * 0.25 * (1 - s) : 0);
         pos.setXYZ(r * (COLS + 1) + c, side * x, y + camber, z + le + (te - le) * v);
       }
     }
@@ -94,66 +275,53 @@ function makeWing(side, material) {
   return { mesh, bend };
 }
 
-/** Builds the body by turning a gull's side profile around its length, with a grey back. */
-function makeBody(white) {
-  // [z along the body, radius]: tail to chest to neck to head to beak base
-  const prof = [[-1.75, 0.02], [-1.6, 0.12], [-1.2, 0.3], [-0.6, 0.48], [0, 0.56], [0.5, 0.52], [0.95, 0.38], [1.15, 0.33],
-    [1.35, 0.37], [1.6, 0.34], [1.82, 0.22], [1.95, 0.08], [1.98, 0.0]];
-  const pts = prof.map(([z, r]) => new THREE.Vector2(r, z));
-  const geo = new THREE.LatheGeometry(pts, 28);
-  geo.rotateX(Math.PI / 2); // lathe axis y -> z, head toward +z
-  geo.scale(1, 0.88, 1);
-  const p = geo.attributes.position, col = new Float32Array(p.count * 3);
-  for (let i = 0; i < p.count; i++) {
-    const head = THREE.MathUtils.smoothstep(p.getZ(i), 0.9, 1.3);
-    // grey mantle on the back between the wings, white everywhere else
-    const back = THREE.MathUtils.smoothstep(p.getY(i), 0.18, 0.42) * (1 - head) * THREE.MathUtils.smoothstep(p.getZ(i), -1.3, -0.6);
-    const g = 1 - back * 0.22;
-    col.set([g * 0.99, g * 0.99 + back * 0.01, g * 1.0], i * 3);
-  }
-  geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
-  return new THREE.Mesh(geo, white);
-}
-
-/** Creates the bird. Call bird.flap(dt, effort) every frame; effort 0 = glide, 1 = hard flapping. */
+/** Creates the bird. Call bird.flap(dt, effort, legs, fold) every frame; effort 0 = glide, 1 = hard flapping. */
 export function createBird() {
-  const wingMat = new THREE.MeshStandardMaterial({ map: wingTexture(), side: THREE.DoubleSide, roughness: 0.75, alphaTest: 0.5 });
-  const white = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.6 });
-  const beakMat = new THREE.MeshStandardMaterial({ color: 0xf3c13a, roughness: 0.35 });
-  const red = new THREE.MeshStandardMaterial({ color: 0xd8432e, roughness: 0.4 });
-  const dark = new THREE.MeshStandardMaterial({ color: 0x111418, roughness: 0.2, metalness: 0.1 });
-  const legMat = new THREE.MeshStandardMaterial({ color: 0xe8b9a0, roughness: 0.6 });
+  // A little emissive lift stands in for light bounced up off the sea onto white undersides
+  const feathers = (map, side, lift) => new THREE.MeshPhysicalMaterial({
+    map, side, alphaTest: 0.5, roughness: 0.8, sheen: 0.6, sheenRoughness: 0.6, sheenColor: new THREE.Color(0xffffff),
+    emissive: new THREE.Color(lift), emissiveMap: map,
+  });
+  const upTex = upperWing(), downTex = underWing();
+  // [right wing, left wing]: which face of the grid shows the top differs because the left wing is mirrored
+  const upperMat = [feathers(upTex, THREE.BackSide, 0x1c1f22), feathers(upTex, THREE.FrontSide, 0x1c1f22)];
+  const underMat = [feathers(downTex, THREE.FrontSide, 0x9a9ea2), feathers(downTex, THREE.BackSide, 0x9a9ea2)];
+  const bodyTex = bodyTexture();
+  const plumage = new THREE.MeshPhysicalMaterial({ map: bodyTex, roughness: 0.85, sheen: 0.7, sheenRoughness: 0.55, sheenColor: new THREE.Color(0xffffff), emissive: new THREE.Color(0x4c5054), emissiveMap: bodyTex });
+  const billMat = new THREE.MeshPhysicalMaterial({ vertexColors: true, roughness: 0.32, clearcoat: 0.4, clearcoatRoughness: 0.4 });
+  const legMat = new THREE.MeshStandardMaterial({ color: 0xe9b7a2, roughness: 0.55 });
 
   const bird = new THREE.Group();
   const body = new THREE.Group();
   bird.add(body);
-  body.add(makeBody(white));
+  body.add(new THREE.Mesh(sweptShape(BODY, 64, 36), plumage));
+  body.add(new THREE.Mesh(billGeometry(), billMat));
 
-  // Beak: a slim tapered wedge with a slight hook and the gull's red spot
-  const beakGeo = new THREE.CylinderGeometry(0.035, 0.11, 0.62, 12, 6);
-  beakGeo.rotateX(Math.PI / 2);
-  const bp = beakGeo.attributes.position;
-  for (let i = 0; i < bp.count; i++) { const z = bp.getZ(i) + 0.31; bp.setY(i, bp.getY(i) * 0.8 - Math.pow(Math.max(0, z - 0.42), 2) * 0.9); }
-  beakGeo.computeVertexNormals();
-  const beak = new THREE.Mesh(beakGeo, beakMat);
-  beak.position.set(0, 1.0 * 0.88 * 0.08, 2.12);
-  body.add(beak);
-  const spot = new THREE.Mesh(new THREE.SphereGeometry(0.035, 8, 6), red);
-  spot.position.set(0, 0.02, 2.28); body.add(spot);
-
-  // Eyes with a tiny highlight
+  // Eyes: pale yellow iris, small pupil, red-orange orbital ring, a wet highlight
+  const irisMat = new THREE.MeshPhysicalMaterial({ color: 0xf0e4a0, roughness: 0.15, clearcoat: 1 });
+  const pupilMat = new THREE.MeshStandardMaterial({ color: 0x0a0b0d, roughness: 0.1 });
+  const ringMat = new THREE.MeshStandardMaterial({ color: 0xd9542f, roughness: 0.5 });
   [-1, 1].forEach((s) => {
-    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.065, 12, 8), dark);
-    eye.position.set(s * 0.29, 0.13, 1.62); body.add(eye);
-    const glint = new THREE.Mesh(new THREE.SphereGeometry(0.015, 6, 4), new THREE.MeshBasicMaterial({ color: 0xffffff }));
-    glint.position.set(s * 0.335, 0.16, 1.67); body.add(glint);
+    const eye = new THREE.Group();
+    eye.position.set(s * 0.215, 0.37, 1.6);
+    eye.rotation.y = s * Math.PI / 2 - s * 0.35; // looking out and a little forward
+    const iris = new THREE.Mesh(new THREE.SphereGeometry(0.052, 16, 12), irisMat);
+    const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.022, 10, 8), pupilMat); pupil.position.z = 0.041;
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.056, 0.011, 6, 20), ringMat); ring.position.z = 0.018;
+    const glint = new THREE.Mesh(new THREE.SphereGeometry(0.008, 6, 4), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+    glint.position.set(0.014, 0.016, 0.05);
+    eye.add(iris, pupil, ring, glint); body.add(eye);
   });
 
   // Legs: tucked back under the tail in flight, lowered under the body to land
   const legs = [-1, 1].map((s) => {
-    const leg = new THREE.Mesh(new THREE.CapsuleGeometry(0.045, 0.5, 4, 6), legMat);
-    const foot = new THREE.Mesh(new THREE.SphereGeometry(0.11, 8, 4), legMat);
-    foot.scale.set(1, 0.25, 1.5); foot.position.set(0, -0.3, 0.08); leg.add(foot);
+    const leg = new THREE.Mesh(new THREE.CapsuleGeometry(0.045, 0.5, 4, 8), legMat);
+    const footGeo = new THREE.BufferGeometry(); // webbed foot: three toes joined by skin
+    footGeo.setAttribute('position', new THREE.Float32BufferAttribute([0, 0, -0.04, -0.13, 0, 0.2, 0, 0, 0.24, 0, 0, -0.04, 0, 0, 0.24, 0.13, 0, 0.2], 3));
+    footGeo.computeVertexNormals();
+    const foot = new THREE.Mesh(footGeo, new THREE.MeshStandardMaterial({ color: 0xe0a895, roughness: 0.6, side: THREE.DoubleSide }));
+    foot.position.set(0, -0.3, 0);
+    leg.add(foot);
     leg.userData.s = s; body.add(leg); return leg;
   });
   const placeLegs = (down) => legs.forEach((leg) => {
@@ -166,12 +334,13 @@ export function createBird() {
   // Tail fan
   const tailGeo = new THREE.PlaneGeometry(1.15, 1.0, 4, 4);
   tailGeo.rotateX(Math.PI / 2);
-  const tail = new THREE.Mesh(tailGeo, new THREE.MeshStandardMaterial({ map: tailTexture(), side: THREE.DoubleSide, alphaTest: 0.5, roughness: 0.7 }));
-  tail.position.set(0, 0.02, -2.05);
+  const tailTex = tailTexture();
+  const tail = new THREE.Mesh(tailGeo, new THREE.MeshStandardMaterial({ map: tailTex, side: THREE.DoubleSide, alphaTest: 0.5, roughness: 0.75, emissive: 0x6a6e72, emissiveMap: tailTex }));
+  tail.position.set(0, 0.06, -2.05);
   body.add(tail);
 
   // Wings
-  const right = makeWing(1, wingMat), left = makeWing(-1, wingMat);
+  const right = makeWing(1, upperMat, underMat), left = makeWing(-1, upperMat, underMat);
   [right, left].forEach((w) => { w.mesh.position.set(0, 0.2, 0.15); body.add(w.mesh); });
 
   let phase = 0;
@@ -197,6 +366,7 @@ export function createBird() {
     });
     placeLegs(legs);
     body.position.y = -s * 0.1 * effort * (1 - f);
+    body.rotation.x = -0.2 * f; // standing: chest up, head held above the back
     tail.rotation.x = Math.sin(phase * 0.5) * 0.04 * (1 - f) - 0.12 * f;
   };
   bird.flap(0, 0.5);
