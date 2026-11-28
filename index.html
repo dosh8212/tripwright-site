@@ -2,30 +2,334 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>TripWright</title>
-<meta name="description" content="TripWright: plan trips on your phone. No account, no cloud AI, your trips and photos stay on your device.">
-<link rel="stylesheet" href="style.css">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TripWright: plan your trip, island by island</title>
+<meta name="description" content="TripWright plans trips on your iPhone: bookings from email, activities from screenshots, an on-phone trip builder, maps and one-link sharing. No account, no cloud AI, your trips and photos stay on your phone.">
+<meta name="theme-color" content="#0c2340">
+<meta property="og:title" content="TripWright: plan your trip, island by island">
+<meta property="og:description" content="A trip planner that lives on your iPhone. No account, no cloud AI, your photos stay with you.">
+<meta property="og:image" content="https://dosh8212.github.io/tripwright-site/app/og-image.jpg">
+<link rel="icon" href="app/favicon.png">
+<link rel="preload" href="fonts/fraunces-600.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="modulepreload" href="vendor/three.module.min.js">
+<link rel="stylesheet" href="landing.css">
 </head>
 <body>
-<main>
-<nav><a href="./">TripWright</a><a href="privacy/">Privacy Policy</a><a href="terms/">Terms of Service</a><a href="#support">Support</a></nav>
-<h1>TripWright</h1>
-<p class="meta">Plan your trips day by day, on your phone.</p>
-<p>Build an itinerary, keep confirmation codes and photos together, check the weather and convert currencies. There is no account to create. Your trips and photos stay on your phone, and you choose what to share.</p>
 
-<section id="support" class="card">
-<h2 style="margin-top:0">Support</h2>
-<p>Questions, problems, or a request to delete data? Email us and we will get back to you.</p>
-<p><a class="mail" href="mailto:aaproducts8212+tripwright@gmail.com">aaproducts8212+tripwright@gmail.com</a></p>
-<h3>Common questions</h3>
-<p><strong>Where are my trips stored?</strong> Only on your phone. Your phone's own backup (such as iCloud Backup) can include them.</p>
-<p><strong>How do I delete my data?</strong> In the app, open Settings. "Delete my cloud data" removes any share links you created; the device wipe, or deleting the app, removes trips and photos from your phone.</p>
-<p><strong>How do I stop a share link?</strong> Open the trip's Share dialog and tap Stop sharing. The link stops working right away.</p>
+<!-- The 3D voyage (js/world.js). Without WebGL the page below reads as a normal stacked page. -->
+<canvas id="world" aria-hidden="true"></canvas>
+<div class="veil" aria-hidden="true"></div>
+
+<header class="topbar">
+  <a class="brand" href="#top" aria-label="TripWright home">
+    <svg viewBox="0 0 32 20" width="30" height="19" aria-hidden="true"><path d="M1 12 C 8 4, 12 4, 16 11 C 20 4, 24 4, 31 12 C 24 8, 20 9, 16 14 C 12 9, 8 8, 1 12Z" fill="currentColor"/></svg>
+    <span>TripWright</span>
+  </a>
+  <p class="where" aria-live="polite"><span class="where-label">Departure</span></p>
+  <a class="top-contact" href="#support">Contact</a>
+  <div class="trip-progress" aria-hidden="true"><span></span></div>
+</header>
+
+<nav class="rail" aria-label="Islands">
+  <div class="rail-line"><span class="rail-fill"></span></div>
+  <ol>
+    <li><a href="#top"><span>Departure</span></a></li>
+    <li><a href="#plans"><span>Isle of Plans</span></a></li>
+    <li><a href="#bookings"><span>Inbox Atoll</span></a></li>
+    <li><a href="#screenshots"><span>Snapshot Key</span></a></li>
+    <li><a href="#maps"><span>Twin Isles</span></a></li>
+    <li><a href="#sharing"><span>Harbor Isle</span></a></li>
+    <li><a href="#privacy"><span>Lighthouse Rock</span></a></li>
+    <li><a href="#port"><span>Home Port</span></a></li>
+  </ol>
+</nav>
+
+<main>
+
+<section id="top" class="beat hero" data-label="Departure">
+  <div class="stick">
+    <div class="hero-copy">
+      <p class="eyebrow">TripWright for iPhone</p>
+      <h1>Every trip is a voyage. <em>Plan it like one.</em></h1>
+      <p class="lede">TripWright turns booking emails, screenshots and a few ideas into a day-by-day plan, right on your iPhone. No account. No cloud AI. Your trips and photos stay with you.</p>
+      <div class="cta-row">
+      <span class="store-soon" role="note">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M16.4 12.6c0-2.4 2-3.5 2-3.6-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.2-2.8.8-3.5.8s-1.8-.8-3-.8c-1.5 0-3 .9-3.8 2.3-1.6 2.8-.4 7 1.2 9.3.8 1.1 1.7 2.4 2.9 2.3 1.2 0 1.6-.7 3-.7s1.8.7 3 .7c1.3 0 2.1-1.1 2.8-2.3.9-1.3 1.3-2.6 1.3-2.6s-2.5-1-2.5-3.6zM14.2 5.6c.6-.8 1.1-1.8 1-2.9-.9 0-2 .6-2.7 1.4-.6.7-1.1 1.8-1 2.8 1 .1 2-.5 2.7-1.3z"/></svg>
+        <span><small>Coming soon to the</small>App Store</span>
+      </span>
+        <a class="btn-ghost" href="#plans">Take the tour <span aria-hidden="true">↓</span></a>
+      </div>
+    </div>
+    <p class="scroll-cue" aria-hidden="true"><span></span>Scroll to fly</p>
+  </div>
 </section>
 
-<p><a href="privacy/">Privacy Policy</a> · <a href="terms/">Terms of Service</a></p>
-<footer>© 2026 TripWright</footer>
+<section id="plans" class="beat" data-label="Isle of Plans">
+  <div class="stick">
+    <article class="panel">
+      <p class="eyebrow">Island 1 of 7 · Isle of Plans</p>
+    <h2>Start with a few words. Leave with a whole trip.</h2>
+    <p>Tell <strong>Build my trip</strong> where you're going, for how long and what you love. Apple Intelligence drafts a day-by-day plan on your iPhone, and you check every activity before it joins your trip.</p>
+    <ul class="ticks">
+      <li>Runs on your iPhone with Apple's on-device model. Nothing goes to an AI company.</li>
+      <li>Keep, change or drop each suggestion before it's added.</li>
+      <li>No Apple Intelligence? Copy a ready-made prompt into any chatbot you choose and paste the plan back.</li>
+    </ul>
+    <p class="also"><span>Also packed:</span> weather for each day · currency converter · confirmation codes in one tab · drag to reorder · print or save as PDF · sample trips to explore</p>
+    </article>
+    <div class="postcard" aria-hidden="true">
+    <div class="phone">
+      <div class="screen">
+        <div class="ui-top"><span class="ui-back">‹</span> Build my trip</div>
+        <div class="ui-field"><small>Where to?</small>Kyoto, Japan</div>
+        <div class="ui-row"><div class="ui-field"><small>Days</small>5</div><div class="ui-field"><small>Pace</small>Relaxed</div></div>
+        <div class="ui-chips"><span>Food</span><span>Temples</span><span>Gardens</span></div>
+        <div class="ui-status"><span class="spark"></span> Planning on your iPhone…</div>
+        <div class="ui-card"><b>Day 1</b> Fushimi Inari at sunrise<i>9:00</i></div>
+        <div class="ui-card"><b>Day 1</b> Nishiki Market lunch<i>12:30</i></div>
+        <div class="ui-card ghost"><b>Day 2</b> Arashiyama bamboo grove<i>8:30</i></div>
+        <div class="ui-button">Review 14 activities</div>
+      </div>
+    </div>
+    </div>
+  </div>
+</section>
+
+<section id="bookings" class="beat" data-label="Inbox Atoll">
+  <div class="stick">
+    <article class="panel">
+      <p class="eyebrow">Island 2 of 7 · Inbox Atoll</p>
+    <h2>Your bookings wash ashore, already sorted.</h2>
+    <p>Share a confirmation email, PDF or Wallet pass with TripWright. It reads the flight, hotel or restaurant details right on your phone and shows you what it found, so you can check it before it's added.</p>
+    <ul class="ticks">
+      <li>Flights, stays and reservations land on the right day, at the right time.</li>
+      <li>Confirmation codes are gathered in their own tab for the check-in desk.</li>
+      <li>Read on the phone with fixed rules. The email itself is never uploaded.</li>
+    </ul>
+    </article>
+    <div class="postcard" aria-hidden="true">
+    <div class="phone">
+      <div class="screen">
+        <div class="ui-top"><span class="ui-back">‹</span> From email</div>
+        <div class="ui-mail">
+          <small>From: Island Air</small>
+          <b>Your flight is confirmed</b>
+          <span class="line"></span><span class="line short"></span><span class="line"></span>
+        </div>
+        <div class="ui-arrow">↓ found 2 bookings</div>
+        <div class="ui-card flight"><b>✈ SFO → LIH</b> Sat 14 Mar · 8:05<i>Code K7Q2LM</i></div>
+        <div class="ui-card hotel"><b>🏨 Hanalei Bay Inn</b> 3 nights<i>Code 88213</i></div>
+        <div class="ui-button">Add to my trip</div>
+      </div>
+    </div>
+    </div>
+  </div>
+</section>
+
+<section id="screenshots" class="beat" data-label="Snapshot Key">
+  <div class="stick">
+    <article class="panel">
+      <p class="eyebrow">Island 3 of 7 · Snapshot Key</p>
+    <h2>Saw it on social? Screenshot it. It's on the plan.</h2>
+    <p>Pick a handful of screenshots at once, like a café's post, a museum's opening hours or a friend's text, then tap Done. TripWright reads the text with Apple's Vision on your iPhone and turns each one into an activity.</p>
+    <ul class="ticks">
+      <li>Choose many screenshots in one go.</li>
+      <li>Names, addresses and times are picked out for you to confirm.</li>
+      <li>The images are never stored or sent anywhere. Only the details you keep are saved.</li>
+    </ul>
+    </article>
+    <div class="postcard" aria-hidden="true">
+    <div class="phone">
+      <div class="screen">
+        <div class="ui-top"><span class="ui-back">‹</span> Add from screenshots</div>
+        <div class="ui-shots">
+          <span class="shot s1"><i>✓</i></span><span class="shot s2"><i>✓</i></span><span class="shot s3"><i>✓</i></span>
+          <span class="shot s4"></span><span class="shot s5"></span><span class="shot s6"></span>
+        </div>
+        <div class="ui-status"><span class="scan"></span> Reading on your iPhone…</div>
+        <div class="ui-card"><b>Hula Grill</b> Dinner · 7:00 PM<i>new</i></div>
+        <div class="ui-card"><b>Bishop Museum</b> Opens 9:00<i>new</i></div>
+        <div class="ui-card"><b>Lanikai sunrise hike</b> 6:15 AM<i>new</i></div>
+        <div class="ui-button">Done</div>
+      </div>
+    </div>
+    </div>
+  </div>
+</section>
+
+<section id="maps" class="beat" data-label="Twin Isles">
+  <div class="stick">
+    <article class="panel">
+      <p class="eyebrow">Island 4 of 7 · Twin Isles</p>
+    <h2>Your day on the map, in your language.</h2>
+    <p>Every stop gets a numbered pin that matches your list, so you can see the shape of the day at a glance. Open a foldable phone or use a wide screen and the map sits beside your itinerary instead of covering it.</p>
+    <ul class="ticks">
+      <li>Tap an item to fly the map to its pin. Directions are one tap away.</li>
+      <li>Map labels in English, another language, or the local names.</li>
+      <li>Open flat: plan on the left, map on the right. Half open like a laptop: map on top, plan below, and the map steps aside while you type.</li>
+    </ul>
+    </article>
+    <div class="postcard" aria-hidden="true">
+    <div class="phone fold">
+      <div class="screen pane-list">
+        <div class="ui-top">Day 2 · Kauai</div>
+        <div class="ui-card"><em>1</em><b>Waimea Canyon</b><i>9:00</i></div>
+        <div class="ui-card"><em>2</em><b>Kalalau Lookout</b><i>11:30</i></div>
+        <div class="ui-card"><em>3</em><b>Hanapepe lunch</b><i>1:00</i></div>
+        <div class="ui-card"><em>4</em><b>Poipu Beach</b><i>4:00</i></div>
+      </div>
+      <span class="hinge"></span>
+      <div class="screen pane-map">
+        <svg viewBox="0 0 160 200" preserveAspectRatio="xMidYMid slice">
+          <rect width="160" height="200" fill="#e7efdf"/>
+          <path d="M0 150 C 40 140, 70 170, 160 150 V200 H0Z" fill="#bfe1ef"/>
+          <path d="M120 0 C 110 40, 150 60, 160 70 V0Z" fill="#bfe1ef"/>
+          <path d="M10 30 C 60 50, 70 90, 120 110 M30 130 C 70 120, 90 80, 150 90" stroke="#fff" stroke-width="5" fill="none"/>
+          <path class="map-route" d="M30 40 L 78 70 L 60 112 L 118 136" stroke="#ef6f56" stroke-width="2.5" fill="none" stroke-dasharray="4 4"/>
+          <g class="pins" font-size="10" font-weight="700" text-anchor="middle" fill="#fff">
+            <circle cx="30" cy="40" r="8" fill="#0c2340"/><text x="30" y="44">1</text>
+            <circle cx="78" cy="70" r="8" fill="#0c2340"/><text x="78" y="74">2</text>
+            <circle cx="60" cy="112" r="8" fill="#0c2340"/><text x="60" y="116">3</text>
+            <circle cx="118" cy="136" r="8" fill="#ef6f56"/><text x="118" y="140">4</text>
+          </g>
+        </svg>
+        <span class="lang-chip">English ▾</span>
+      </div>
+    </div>
+    </div>
+  </div>
+</section>
+
+<section id="sharing" class="beat" data-label="Harbor Isle">
+  <div class="stick">
+    <article class="panel">
+      <p class="eyebrow">Island 5 of 7 · Harbor Isle</p>
+    <h2>One link brings the whole crew aboard.</h2>
+    <p>Share a trip in a single message, "Here's our Kauai Trip in TripWright", with a link that opens it in the app. Choose whether your travel partners can only look, or can update the plan with you.</p>
+    <ul class="ticks">
+      <li><b>View only</b> or <b>Can view and edit</b>. Stop sharing any time and the link stops working right away.</li>
+      <li>Confirmation codes stay out of the link unless you choose to include them.</li>
+      <li>AirDrop a trip with its photos to a friend who has TripWright, or make a Shared Album of your trip photos straight from the app.</li>
+    </ul>
+    </article>
+    <div class="postcard" aria-hidden="true">
+    <div class="phone">
+      <div class="screen">
+        <div class="ui-top">Share trip</div>
+        <div class="ui-seg"><span>View only</span><span class="on">Can view and edit</span></div>
+        <div class="ui-toggle"><span>Include confirmation codes</span><i></i></div>
+        <div class="ui-bubble">Here's our Kauai Trip in TripWright: <u>tripwright…/trip/kauai</u></div>
+        <div class="ui-bubble them">We're in! Added a luau on Friday 🌺</div>
+        <div class="ui-share-row"><span>AirDrop</span><span>Messages</span><span>Album</span></div>
+      </div>
+    </div>
+    </div>
+  </div>
+</section>
+
+<section id="privacy" class="beat night" data-label="Lighthouse Rock">
+  <div class="stick">
+    <article class="panel">
+      <p class="eyebrow">Island 6 of 7 · Lighthouse Rock</p>
+    <h2>Your trip stays on your phone. That's the whole idea.</h2>
+    <p>There's no account to make and nothing to sign in to. Trips and photos are saved on your iPhone, and the clever parts, reading bookings, reading screenshots and building plans, happen there too.</p>
+    <div class="beacons">
+      <div><b>No account</b><span>Open the app and start planning.</span></div>
+      <div><b>No cloud AI</b><span>Trip building runs on your iPhone.</span></div>
+      <div><b>Photos stay home</b><span>Never uploaded, never in a share link.</span></div>
+      <div><b>No tracking</b><span>No ad trackers watching your plans.</span></div>
+    </div>
+    <p><a class="text-link" href="privacy/">Read the Privacy Policy →</a></p>
+    </article>
+    <div class="postcard" aria-hidden="true">
+    <div class="phone mini">
+      <div class="screen">
+        <div class="ui-lock">
+          <svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true"><path fill="#0c2340" d="M7 10V7a5 5 0 0 1 10 0v3h1a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1zm2 0h6V7a3 3 0 0 0-6 0z"/></svg>
+          <b>Saved on this phone</b>
+          <small>3 trips · 412 photos</small>
+        </div>
+      </div>
+    </div>
+    </div>
+  </div>
+</section>
+
+<section id="port" class="beat port" data-label="Home Port">
+  <div class="stick">
+    <article class="panel">
+      <p class="eyebrow">Island 7 of 7 · Home Port</p>
+      <h2>Land softly. Your next trip starts here.</h2>
+      <p>That's the whole voyage: plan it, gather your bookings, map your days and bring your crew, all from one iPhone app that keeps your trips to itself.</p>
+      <div class="cta-row">
+      <span class="store-soon" role="note">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M16.4 12.6c0-2.4 2-3.5 2-3.6-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.2-2.8.8-3.5.8s-1.8-.8-3-.8c-1.5 0-3 .9-3.8 2.3-1.6 2.8-.4 7 1.2 9.3.8 1.1 1.7 2.4 2.9 2.3 1.2 0 1.6-.7 3-.7s1.8.7 3 .7c1.3 0 2.1-1.1 2.8-2.3.9-1.3 1.3-2.6 1.3-2.6s-2.5-1-2.5-3.6zM14.2 5.6c.6-.8 1.1-1.8 1-2.9-.9 0-2 .6-2.7 1.4-.6.7-1.1 1.8-1 2.8 1 .1 2-.5 2.7-1.3z"/></svg>
+        <span><small>Coming soon to the</small>App Store</span>
+      </span>
+        <a class="btn-ghost" href="#support">Contact us <span aria-hidden="true">↓</span></a>
+      </div>
+    </article>
+  </div>
+</section>
+
 </main>
+
+<section id="support" class="support">
+  <div class="support-inner">
+    <div class="support-head">
+      <p class="eyebrow">Support</p>
+      <h2>Questions? We're right here at the dock.</h2>
+      <p>Something not working, an idea for the next voyage, or a request to delete data? Email us and a real person will get back to you.</p>
+    </div>
+    <div class="support-grid">
+      <a class="contact-card" href="mailto:aaproducts8212+tripwright@gmail.com?subject=TripWright">
+        <span class="contact-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="28" height="28"><path fill="currentColor" d="M3 5h18a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zm1 2.4V17h16V7.4l-8 5.3zM5.6 7l6.4 4.3L18.4 7z"/></svg>
+      </span>
+        <span class="contact-label">Email support</span>
+        <span class="mail">aaproducts8212+tripwright@gmail.com</span>
+        <span class="contact-go">Write to us →</span>
+      </a>
+      <div class="faq">
+      <h3>Common questions</h3>
+      <details>
+        <summary>Where are my trips stored?</summary>
+        <p>Only on your phone. Your phone's own backup (such as iCloud Backup) can include them.</p>
+      </details>
+      <details>
+        <summary>Does TripWright use AI?</summary>
+        <p>Only on your iPhone. "Build my trip" uses Apple Intelligence, which runs on the device; nothing you type is sent to an AI company. Reading bookings and screenshots also happens on the phone.</p>
+      </details>
+      <details>
+        <summary>How do I delete my data?</summary>
+        <p>In the app, open Settings. "Delete my cloud data" removes any share links you created; the device wipe, or deleting the app, removes trips and photos from your phone.</p>
+      </details>
+      <details>
+        <summary>How do I stop a share link?</summary>
+        <p>Open the trip's Share dialog and tap Stop sharing. The link stops working right away.</p>
+      </details>
+      <details>
+        <summary>When can I download it?</summary>
+        <p>TripWright is coming soon to the App Store for iPhone. Email us if you'd like a note when it's out.</p>
+      </details>
+    </div>
+    </div>
+  </div>
+</section>
+
+<footer class="site-footer">
+  <div>
+    <a class="brand" href="#top"><span>TripWright</span></a>
+    <p>Plan your trips day by day, on your iPhone.</p>
+  </div>
+  <nav aria-label="Footer">
+    <a href="privacy/">Privacy Policy</a>
+    <a href="terms/">Terms of Service</a>
+    <a href="mailto:aaproducts8212+tripwright@gmail.com">Contact</a>
+  </nav>
+  <p class="fine">© 2026 TripWright. Apple, iPhone, AirDrop and App Store are trademarks of Apple Inc.</p>
+</footer>
+
+<script type="module" src="js/main.js"></script>
 </body>
 </html>
