@@ -250,7 +250,7 @@ function makeWing(side, upperMat, underMat) {
   const ss = (a, b, v) => { const t = Math.min(1, Math.max(0, (v - a) / (b - a))); return t * t * (3 - 2 * t); };
 
   /** Bends the wing: each column is placed from the previous one at the angle for its span position. */
-  function bend(shoulder, wrist, tip, sweep) {
+  function bend(shoulder, wrist, tip, sweep, twist = 0) {
     let x = 0, y = 0, z = 0;
     for (let c = 0; c <= COLS; c++) {
       const s = c / COLS;
@@ -266,7 +266,9 @@ function makeWing(side, upperMat, underMat) {
         const v = r / ROWS;
         // aerofoil: rounded and thick at the leading edge, thin at the back
         const camber = Math.sin(Math.PI * Math.min(1, v * 1.2)) * 0.1 * (1 - s * 0.6) + (v < 0.12 ? (0.12 - v) * 0.25 * (1 - s) : 0);
-        pos.setXYZ(r * (COLS + 1) + c, side * x, y + camber, z + le + (te - le) * v);
+        // twist: the outer wing pitches leading-edge-down on the downstroke and feathers on the upstroke
+        const chord = (te - le) * v, tw = twist * ss(0.25, 1, s);
+        pos.setXYZ(r * (COLS + 1) + c, side * x, y + camber - chord * Math.sin(tw), z + le + chord * Math.cos(tw));
       }
     }
     pos.needsUpdate = true;
@@ -343,20 +345,35 @@ export function createBird() {
   const right = makeWing(1, upperMat, underMat), left = makeWing(-1, upperMat, underMat);
   [right, left].forEach((w) => { w.mesh.position.set(0, 0.2, 0.15); body.add(w.mesh); });
 
-  let phase = 0;
-  /** Beats the wings: strong strokes with a lagging wrist and tip, or a near-still glide.
-      legs (0..1) lowers the legs to land; fold (0..1) folds the wings back along the body. */
+  let phase = 0, ampS = 0.3, beats = 0, glideLeft = 0, lastSin = 0;
+  /** Flies like a gull: a few deep wingbeats, then a long glide on stiff, slightly raised wings.
+      The wrist and tip lag the shoulder, the outer wing twists through each stroke, and the
+      wingtips sweep back on the upstroke. effort 0 = mostly gliding, 1 = flapping hard (climbing,
+      landing). legs (0..1) lowers the legs to land; fold (0..1) folds the wings back along the body. */
   bird.flap = (dt, effort, legs = 0, fold = 0) => {
-    phase += dt * (4.2 + effort * 3.6);
-    const amp = 0.1 + effort * 0.55;
-    const s = Math.sin(phase);
-    const shoulder = s * amp + 0.1;
-    const wrist = Math.sin(phase - 0.7) * amp * 0.75 - 0.08 - (s < 0 ? 0 : effort * 0.12);
-    const tip = Math.sin(phase - 1.3) * amp * 0.55 + 0.04;
-    const sweep = 0.12 + (1 - effort) * 0.1 + Math.max(0, Math.cos(phase)) * 0.12 * effort;
+    // flap-and-glide rhythm: count beats, then glide for a while unless working hard
+    const hard = effort > 0.75 || legs > 0;
+    if (glideLeft > 0 && !hard) glideLeft -= dt;
+    else phase += dt * (5.2 + effort * 3);
+    const sn = Math.sin(phase);
+    if (lastSin < 0 && sn >= 0) { // a beat completed
+      beats++;
+      if (!hard && beats >= 3 + Math.round(effort * 3)) { beats = 0; glideLeft = 1.6 + Math.random() * 1.6 - effort * 1.2; }
+    }
+    lastSin = sn;
+    const gliding = glideLeft > 0 && !hard;
+    const ampTarget = gliding ? 0.025 : 0.22 + effort * 0.5;
+    ampS += (ampTarget - ampS) * (1 - Math.exp(-dt * (gliding ? 3 : 6)));
+    const amp = ampS, s = gliding ? Math.sin(phase) * 0.15 : sn;
+    const down = Math.cos(phase); // >0 while the wing is moving down
+    const shoulder = s * amp + (gliding ? 0.14 : 0.1);
+    const wrist = Math.sin(phase - 0.7) * amp * 0.75 - 0.06 - (s < 0 ? 0 : amp * 0.2);
+    const tip = Math.sin(phase - 1.3) * amp * 0.6 + (gliding ? -0.02 : 0.04);
+    const sweep = 0.14 + (gliding ? 0.06 : 0) + Math.max(0, -down) * 0.3 * amp; // tips swept back on the upstroke
+    const twist = -down * amp * 0.55 + legs * 0.35; // flare: wings tilt up to brake when landing
     const L = THREE.MathUtils.lerp, f = fold * fold * (3 - 2 * fold);
-    right.bend(L(shoulder, -0.12, f), L(wrist, 0.04, f), L(tip, 0.02, f), L(sweep, 0, f));
-    left.bend(L(shoulder, -0.12, f), L(wrist, 0.04, f), L(tip, 0.02, f), L(sweep, 0, f));
+    right.bend(L(shoulder, -0.12, f), L(wrist, 0.04, f), L(tip, 0.02, f), L(sweep, 0, f), L(twist, 0, f));
+    left.bend(L(shoulder, -0.12, f), L(wrist, 0.04, f), L(tip, 0.02, f), L(sweep, 0, f), L(twist, 0, f));
     [right, left].forEach((w, k) => {
       const side = k ? -1 : 1;
       // swing the wing back to lie along the body, its outer edge tilted down over the flank
@@ -365,9 +382,10 @@ export function createBird() {
       w.mesh.position.set(side * 0.5 * f, 0.2 + 0.14 * f, 0.15 + 0.45 * f);
     });
     placeLegs(legs);
-    body.position.y = -s * 0.1 * effort * (1 - f);
+    body.position.y = -s * amp * 0.12 * (1 - f); // the body lifts on each downstroke
     body.rotation.x = -0.2 * f; // standing: chest up, head held above the back
-    tail.rotation.x = Math.sin(phase * 0.5) * 0.04 * (1 - f) - 0.12 * f;
+    tail.rotation.x = Math.sin(phase * 0.5) * 0.04 * (1 - f) - 0.12 * f - legs * 0.35 * (1 - f);
+    tail.scale.x = 1 + legs * 0.45 * (1 - f); // fanned wide as an air brake to land
   };
   bird.flap(0, 0.5);
   return bird;

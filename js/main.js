@@ -218,7 +218,7 @@ const frame = { x: 0, y: 0 };
 function frameFor(world, film, k) {
   const wide = window.innerWidth >= 900;
   const hero = Math.max(0, 1 - film * 1.6);
-  const tx = wide ? 0.17 * (1 - hero) : 0;
+  const tx = wide ? 0.17 + 0.06 * hero : 0;
   const ty = wide ? 0 : 0.06 * hero - 0.17 * (1 - hero);
   frame.x += (tx - frame.x) * k; frame.y += (ty - frame.y) * k;
   world.setFrame(frame.x, frame.y);

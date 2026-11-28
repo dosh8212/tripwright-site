@@ -5,6 +5,7 @@ import { createBird } from './bird.js';
 import { islandBuilders } from './islands.js';
 import { makeOcean } from './ocean.js';
 import { seabed } from './terrain.js';
+import { createPost } from './post.js';
 
 /* Sky for each stop: zenith, horizon, sun colour, sun height (radians), night amount. */
 const SKIES = [
@@ -124,6 +125,7 @@ export function createWorld(canvas) {
   // What lies under the water (seabed, island slopes), drawn first so the sea can show it through
   const under = new THREE.WebGLRenderTarget(4, 4, { depthTexture: new THREE.DepthTexture(4, 4), samples: 0 });
   const underScale = mobile ? 0.6 : 1;
+  const post = createPost(renderer, mobile); // glow, light shafts, colour grade (js/post.js)
 
   const scene = new THREE.Scene();
   scene.fog = new THREE.Fog(0xffffff, 260, 1500);
@@ -240,6 +242,15 @@ export function createWorld(canvas) {
     }
     const lookAt = pos.clone().addScaledVector(tan, 10);
     if (film < 1) lookAt.y += 8 * (1 - film);
+    // Opening shot: the gull flies straight at the camera, then the camera swings round behind it
+    const facing = film < 1 ? 1 - THREE.MathUtils.smoothstep(film, 0.12, 0.7) : 0;
+    if (facing > 0) {
+      const flat = tan.clone().setY(0).normalize();
+      const dir = flat.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI * (1 - facing) + 0.45 * facing);
+      const orbit = pos.clone().addScaledVector(dir, THREE.MathUtils.lerp(26, 13, facing)).add(new THREE.Vector3(0, THREE.MathUtils.lerp(7, 3.2, facing), 0));
+      want.lerp(orbit, Math.min(1, facing * 1.6));
+      lookAt.lerp(pos.clone().add(new THREE.Vector3(0, 1.5, 0)), facing);
+    }
     if (island) lookAt.lerp(island.clone().setY(6), 0.62 * near);
     if (land > 0) { // end on the gull on its post, with the town behind
       const side = new THREE.Vector3(-seaward.z, 0, seaward.x);
@@ -265,7 +276,16 @@ export function createWorld(canvas) {
     renderer.setRenderTarget(null);
     scene.fog.near = fogNear; scene.fog.far = fogFar;
     ocean.mesh.visible = true; sky.mesh.visible = true; clouds.group.visible = true; stars.visible = true;
+    renderer.setRenderTarget(post.target);
     renderer.render(scene, camera);
+    // Where the sun sits on screen, for the light shafts
+    const sd = sky.uniforms.sunDir.value;
+    const sp = camera.position.clone().addScaledVector(sd, 1000).project(camera);
+    const inFront = camera.getWorldDirection(new THREE.Vector3()).dot(sd);
+    const onScreen = 1 - THREE.MathUtils.smoothstep(Math.max(Math.abs(sp.x), Math.abs(sp.y)), 0.9, 1.6);
+    const vis = THREE.MathUtils.smoothstep(inFront, 0.1, 0.5) * onScreen * THREE.MathUtils.smoothstep(sd.y, -0.03, 0.06) * (1 - night);
+    post.setSun(sp.x * 0.5 + 0.5, sp.y * 0.5 + 0.5, vis, night);
+    post.finish(dt);
   }
 
   /** Shifts the view so the subject sits beside the text panel (x, y as fractions of the screen). */
@@ -286,6 +306,7 @@ export function createWorld(canvas) {
     const buf = renderer.getDrawingBufferSize(new THREE.Vector2());
     under.setSize(Math.round(buf.x * underScale), Math.round(buf.y * underScale));
     ocean.uniforms.res.value.copy(buf);
+    post.setSize(buf.x, buf.y);
     ocean.uniforms.tScene.value = under.texture; ocean.uniforms.tDepth.value = under.depthTexture;
     camera.aspect = w / h;
     camera.fov = w < h ? 68 : 55;

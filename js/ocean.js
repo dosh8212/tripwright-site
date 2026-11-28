@@ -123,7 +123,7 @@ export function makeOcean(mobile) {
         col += vec3(.05, .32, .3) * sss * .55 * (1. - night) * step(0., sunDir.y);
         // Sun glitter
         vec3 Hv = normalize(sunDir + V); float nh = max(dot(n, Hv), 0.);
-        col += sunCol * (pow(nh, 700.) * 3.5 + pow(nh, 90.) * .35) * step(-.02, sunDir.y) * (1. - night);
+        col += sunCol * (pow(nh, 700.) * 2.4 + pow(nh, 90.) * .3) * step(-.02, sunDir.y) * (1. - night);
         // Foam: along shores where the water is thin, and on the tallest crests
         float fn = fbm3(vWorld.xz * .55 + time * vec2(.25, .1)) + fbm3(vWorld.xz * 1.6 - time * .2) * .5;
         float shore = 1. - smoothstep(0., 1.1, depth);
